@@ -259,7 +259,7 @@
     },
     "save_schedule_profile": {
       "name": "Zeitplanprofil speichern",
-      "description": "Speichert Zuhause- und Abwesenheitszeitpläne als Raumprofil oder hausweite Vorlage.",
+      "description": "Save the current Home and Away schedule to an existing room profile.",
       "fields": {
         "entity_id": {
           "name": "Klima-Entität"
@@ -271,7 +271,7 @@
     },
     "restore_schedule_profile": {
       "name": "Zeitplanprofil wiederherstellen",
-      "description": "Stellt ein Raumprofil oder eine hausweite Vorlage wieder her.",
+      "description": "Restore an existing room profile with home-default fallback.",
       "fields": {
         "entity_id": {
           "name": "Klima-Entität"
@@ -292,13 +292,13 @@
     },
     "delete_schedule_profile": {
       "name": "Zeitplanprofil löschen",
-      "description": "Löscht ein benutzerdefiniertes Zeitplanprofil. Standardprofilnamen können nicht gelöscht werden.",
+      "description": "Delete a user-created home-wide profile class; built-in profiles cannot be deleted.",
       "fields": {
-        "entity_id": {
-          "name": "Klima-Entität"
+        "device_id": {
+          "name": "Tado X Home device"
         },
         "profile": {
-          "name": "Profilname"
+          "name": "Profile name"
         }
       }
     },
@@ -313,6 +313,42 @@
         "profile": {
           "name": "Profilname",
           "description": "Normal, Alternative, Eco oder Not in use (optionales Suffix default)."
+        }
+      }
+    },
+    "save_schedule_profile_default": {
+      "name": "Save default schedule profile",
+      "description": "Save this room's live schedule as a home-wide default.",
+      "fields": {
+        "entity_id": {
+          "name": "Climate entity"
+        },
+        "profile": {
+          "name": "Profile name"
+        }
+      }
+    },
+    "restore_schedule_profile_default": {
+      "name": "Restore default schedule profile",
+      "description": "Restore a home-wide default schedule to a room.",
+      "fields": {
+        "entity_id": {
+          "name": "Climate entity"
+        },
+        "profile": {
+          "name": "Profile name"
+        }
+      }
+    },
+    "create_schedule_profile": {
+      "name": "Create schedule profile",
+      "description": "Create a home-wide profile class available to every room.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Home device"
+        },
+        "profile": {
+          "name": "New profile name"
         }
       }
     }
@@ -447,6 +483,9 @@
       },
       "home_id": {
         "name": "Tado-Heim-ID"
+      },
+      "dhw_state": {
+        "name": "Warmwasserstatus"
       }
     },
     "binary_sensor": {

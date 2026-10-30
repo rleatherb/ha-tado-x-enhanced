@@ -76,8 +76,20 @@ async def async_setup_entry(
 
     async_add_entities(entities)
 
-    # Update entity enabled/disabled state based on feature flags
+    # Remove v37-only default-profile selectors, now available exclusively as actions.
     entity_registry = er.async_get(hass)
+    obsolete_suffixes = (
+        "_restore_default_schedule_profile",
+        "_save_default_schedule_profile",
+    )
+    for entity_id, entity_entry in list(entity_registry.entities.items()):
+        if (entity_entry.platform == DOMAIN
+                and entity_entry.config_entry_id == entry.entry_id
+                and entity_entry.unique_id
+                and entity_entry.unique_id.endswith(obsolete_suffixes)):
+            entity_registry.async_remove(entity_id)
+
+    # Update entity enabled/disabled state based on feature flags
     for entity_id, entity_entry in list(entity_registry.entities.items()):
         if entity_entry.platform != DOMAIN:
             continue
@@ -388,12 +400,7 @@ class TadoXSaveScheduleProfileSelect(TadoXScheduleProfileSelect):
         if option == "Custom":
             raise HomeAssistantError("Custom is a status, not a profile name")
         manager = self.coordinator.schedule_profile_manager
-        from .schedule_profiles import base_default_name
-        default = base_default_name(option)
-        if default is not None:
-            await manager.save_home_default(self._room_id, default)
-        else:
-            if option not in manager.names(self._room_id):
-                raise HomeAssistantError(f"Unknown schedule profile: {option}")
-            await manager.save(self._room_id, option)
+        if option not in manager.names(self._room_id):
+            raise HomeAssistantError(f"Unknown schedule profile: {option}")
+        await manager.save(self._room_id, option)
         self.async_write_ha_state()

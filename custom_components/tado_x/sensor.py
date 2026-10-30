@@ -336,6 +336,15 @@ HOME_SENSORS: tuple[TadoXHomeSensorEntityDescription, ...] = (
         value_fn=_get_api_status,
     ),
     TadoXHomeSensorEntityDescription(
+        key="dhw_state",
+        name="Hot Water State",
+        translation_key="dhw_state",
+        icon="mdi:water-boiler",
+        device_class=SensorDeviceClass.ENUM,
+        options=["OFF", "SCHEDULE_OFF", "SCHEDULE_ON", "BOOST", "AWAY_OFF", "AWAY_ON"],
+        value_fn=_get_domestic_hot_water_state,
+    ),
+    TadoXHomeSensorEntityDescription(
         key="presence_state",
         translation_key="presence_state",
         icon="mdi:home-account",
@@ -350,14 +359,6 @@ HOME_SENSORS: tuple[TadoXHomeSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.ENUM,
         options=["AUTO", "MANUAL"],
         value_fn=_get_presence_mode,
-    ),
-    TadoXHomeSensorEntityDescription(
-        key="dhw_state",
-        translation_key="dhw_state",
-        icon="mdi:water-boiler",
-        device_class=SensorDeviceClass.ENUM,
-        options=["OFF", "SCHEDULE_OFF", "SCHEDULE_ON", "BOOST", "AWAY_OFF", "AWAY_ON"],
-        value_fn=_get_domestic_hot_water_state,
     ),
     TadoXHomeSensorEntityDescription(
         key="dhw_boost_ends",

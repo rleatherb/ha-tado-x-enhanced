@@ -32,18 +32,29 @@ Once this repository is **public** and a release has been published:
 
 This is a **custom repository** installation; inclusion in the default HACS catalogue is not required. Exact HACS menu labels can vary by version.
 
-### Existing Tado X installations
+### Replacing an existing Tado X installation
 
-**Back up Home Assistant before switching.** This integration intentionally retains the Home Assistant domain `tado_x` to preserve compatibility with existing configuration entries and entity identifiers where possible. Consequently, **it cannot be installed alongside another integration using the `tado_x` domain**.
+Tado X Enhanced uses the same Home Assistant integration domain, `tado_x`, as Exabird's original integration. **It is a replacement, not a second integration that can run alongside the original.** Preserving the domain is intended to retain existing configuration entries and entity identities, but migration from every older version has **not** been verified.
 
-If you currently use the original integration or a development build:
+**Back up Home Assistant before switching.** Make a complete backup including configuration entries, `.storage` data and custom integrations. Record important entity IDs and the configured Tado homes, and ensure the backup can be restored.
 
-1. Back up your Home Assistant configuration and the integration's saved data.
-2. Remove the old integration's installed **code** or old HACS repository association as appropriate; **do not delete your configured Tado homes** merely to change the source repository.
-3. Install this repository through HACS, then restart Home Assistant.
-4. Confirm that your homes, entities, actions, hot-water controls and saved schedule profiles remain available.
+1. **Register the new repository.** In HACS, add `https://github.com/rleatherb/ha-tado-x-enhanced` as a custom **Integration** repository. If HACS reports a duplicate-domain or repository conflict, stop and resolve it before proceeding.
+2. **Remove the old HACS installation**, if it was installed through HACS. This concerns the **downloaded integration files or HACS repository association**, not the Tado X configuration entries. **Do not delete your Tado X homes under Settings → Devices & services.** HACS menu labels and removal behaviour can vary by version.
+3. **Install Tado X Enhanced** through HACS. Before restarting, confirm that the replacement code is installed under `custom_components/tado_x/`. Do not allow two sets of files to coexist under the same domain. If HACS cannot perform the switch, use a carefully controlled manual file replacement instead; do not delete configuration entries to resolve the conflict.
+4. **Restart Home Assistant** after the replacement code is in place.
+5. **Verify the migration.** Check that the original Tado home entries load, existing climate and other entity IDs remain available, actions work, and any relevant hot-water and schedule controls behave as expected. Inspect Home Assistant logs for errors. For installations with multiple homes, test both homes and room-specific routing.
+6. **Check schedule-profile data.** The Enhanced integration can capture an existing room's live Home/Away schedule as its initial **Normal** profile when no saved Normal profile exists. Verify the capture before making changes to live schedules; stored profile data from unrelated development builds is not guaranteed to migrate.
 
-Migration should be tested carefully; preserving the domain does not guarantee compatibility with every older version or installation method.
+**The exact HACS handover from the original repository to this repository still requires live testing.** Removing a Home Assistant integration configuration entry is different from uninstalling downloaded files and can remove entities and integration-managed information. If the replacement fails, restore your backup and report the problem with redacted logs.
+
+## Detailed documentation
+
+- [Configuration](docs/CONFIGURATION.md)
+- [Schedules and schedule profiles](docs/SCHEDULES.md)
+- [Actions reference](docs/ACTIONS.md)
+- [Devices, entities and attributes](docs/ENTITIES.md)
+- [Usage examples](docs/EXAMPLES.md)
+- [Technical architecture](docs/ARCHITECTURE.md)
 
 ## Configuration
 
@@ -79,32 +90,22 @@ Available entities vary with hardware, account capabilities and configuration.
 
 The four named profiles are **Normal**, **Alternative**, **Eco** and **Not in use**. Each profile can store the room's full Home weekly schedule **and** Away configuration (including Away temperature and preheating where supported).
 
-A room-specific profile takes precedence over its matching home-wide default on ordinary restore. Selecting an explicit `… default` option restores the home-wide template instead. If no custom home default is saved, the integration has a predefined factory fallback. Saving or resetting a default does **not** immediately alter active room schedules.
+A room-specific saved profile takes precedence over the home-wide default when restored normally. To apply the home-wide default to a room explicitly, use `tado_x.restore_schedule_profile_default` in **Developer Tools → Actions**; to save the room's current schedule as the home-wide default, use `tado_x.save_schedule_profile_default`. The corresponding device-page default selectors were removed. Saving or resetting a default does **not** immediately change active room schedules.
 
-The integration initially captures the current room schedule as **Normal** if that room profile is missing. The **Custom** indication is based on the most recent comparison; when automatic checks are off, use **Refresh Schedule** to detect changes made outside Home Assistant.
+The integration initially captures the current room schedule as **Normal** if that room profile is missing. The **Custom** indication is based on the latest comparison; when automatic checks are off, use **Refresh Schedule** to detect changes made outside Home Assistant. Additional profile names can be created separately for each home.
 
 ## Actions
 
-The integration exposes **16 actions** in **Developer Tools → Actions**, all under `tado_x`:
+The integration exposes **19 actions** under `tado_x` in **Developer Tools → Actions**:
 
-| Action | Purpose |
+| Category | Actions |
 | --- | --- |
-| `tado_x.set_temperature_offset` | Calibrate a physical Tado X device. |
-| `tado_x.add_meter_reading` | Submit an Energy IQ meter reading. |
-| `tado_x.set_eiq_tariff` | Set an Energy IQ tariff. |
-| `tado_x.set_climate_timer` | Set a timed, manual or next-time-block room temperature override. |
-| `tado_x.get_schedule` | Retrieve a room's Home schedule. |
-| `tado_x.set_schedule` | Replace a selected day of a room's Home schedule. |
-| `tado_x.get_away_schedule` | Retrieve a room's Away configuration. |
-| `tado_x.set_away_schedule` | Update a room's Away configuration. |
-| `tado_x.get_day_report` | Retrieve a room's historical day report. |
-| `tado_x.get_holiday_mode` | Read home holiday-mode settings. |
-| `tado_x.set_holiday_mode` | Update home holiday-mode settings where supported. |
-| `tado_x.save_schedule_profile` | Save a room profile or home-wide default. |
-| `tado_x.restore_schedule_profile` | Restore a room profile or home-wide default. |
-| `tado_x.list_schedule_profiles` | List profile availability for a room. |
-| `tado_x.delete_schedule_profile` | Delete a saved room profile. |
-| `tado_x.reset_schedule_default` | Revert a home-wide default to the factory template. |
+| Temperature and Energy IQ | `set_temperature_offset`, `add_meter_reading`, `set_eiq_tariff`, `set_climate_timer` |
+| Home and Away schedules | `get_schedule`, `set_schedule`, `get_away_schedule`, `set_away_schedule` |
+| History and holiday mode | `get_day_report`, `get_holiday_mode`, `set_holiday_mode` |
+| Schedule profiles | `save_schedule_profile`, `restore_schedule_profile`, `list_schedule_profiles`, `create_schedule_profile`, `delete_schedule_profile`, `save_schedule_profile_default`, `restore_schedule_profile_default`, `reset_schedule_default` |
+
+See the [complete actions reference](docs/ACTIONS.md) for parameters and home/room targeting.
 
 Example — set a temperature for 60 minutes:
 
@@ -146,7 +147,7 @@ These calculations do not require additional API calls. They are estimates, not 
 
 ## Releases and changes
 
-See **[CHANGELOG.md](CHANGELOG.md)** for the initial feature set, compatibility notes and all future release changes. Versioning follows [Semantic Versioning](https://semver.org/).
+See **[CHANGELOG.md](CHANGELOG.md)** and [CONTRIBUTING.md](CONTRIBUTING.md) for the initial feature set, compatibility notes and all future release changes. Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## Issues and contributions
 

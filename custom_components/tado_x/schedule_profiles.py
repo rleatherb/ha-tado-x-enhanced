@@ -58,7 +58,7 @@ def default_snapshot(profile: str) -> dict:
             })
     return {
         "schedule": schedule,
-        "away": {"mode": "ON", "awayTemperatureCelsius": 14.0,
+        "away": {"mode": "ON", "awayTemperatureCelsius": {"Normal": 17.0, "Alternative": 17.0, "Eco": 16.0}.get(profile, 14.0),
                  "preheatingLevel": "BALANCE"},
     }
 
@@ -103,6 +103,7 @@ class ProfileManager:
         self.store = Store(hass, 1, f"tado_x_schedule_profiles_{coordinator.home_id}")
         self.profiles: dict[str, dict[str, dict]] = {}
         self.home_defaults: dict[str, dict] = {}
+        self.custom_names: list[str] = []
         self._default_lock = asyncio.Lock()
         self.matches: dict[str, list[str]] = {}
         self.status: dict[str, str] = {}
@@ -118,6 +119,7 @@ class ProfileManager:
         data = await self.store.async_load() or {}
         self.profiles = data.get("profiles", {})
         self.home_defaults = data.get("home_defaults", {})
+        self.custom_names = list(data.get("custom_names", []))
         self.last_applied = data.get("last_applied", {})
 
     async def initialize_normal_profiles(self):
@@ -173,11 +175,11 @@ class ProfileManager:
 
     def selector_names(self, room_id):
         """Operational profiles plus explicit home-default commands."""
-        return self.names(room_id) + [default_name(p) for p in DEFAULT_PROFILES]
+        return self.names(room_id)
 
     async def save_home_default(self, room_id, profile):
         """Save this room's live Home/Away settings as a home-wide template."""
-        if profile not in DEFAULT_PROFILES:
+        if profile not in self.all_names():
             raise HomeAssistantError(f"Unknown home default: {profile}")
         async with self._default_lock:
             async with self._lock(room_id):
@@ -201,7 +203,7 @@ class ProfileManager:
 
     async def reset_home_default(self, profile):
         """Discard a customised template, revealing its built-in factory version."""
-        if profile not in DEFAULT_PROFILES:
+        if profile not in self.all_names():
             raise HomeAssistantError(f"Unknown home default: {profile}")
         async with self._default_lock:
             old = self.home_defaults.pop(profile, None)
@@ -225,7 +227,27 @@ class ProfileManager:
 
     def names(self, room_id):
         saved = self.profiles.get(str(room_id), {})
-        return list(DEFAULT_PROFILES) + sorted(n for n in saved if n not in DEFAULT_PROFILES)
+        return self.all_names()
+
+    def all_names(self):
+        return list(DEFAULT_PROFILES) + sorted(self.custom_names)
+
+    async def create(self, profile):
+        profile = profile.strip()
+        if not profile or len(profile) > 80 or profile.endswith(DEFAULT_SUFFIX) or profile.lower() == "custom":
+            raise HomeAssistantError("Invalid profile name")
+        async with self._default_lock:
+            if profile.casefold() in (n.casefold() for n in self.all_names()):
+                raise HomeAssistantError(f"Profile already exists: {profile}")
+            self.custom_names.append(profile)
+            self.home_defaults[profile] = self.home_default("Normal")
+            try:
+                await self.persist()
+            except Exception:
+                self.custom_names.remove(profile)
+                self.home_defaults.pop(profile, None)
+                raise
+            await self.recheck_home()
 
     def notify(self):
         for callback in tuple(self.listeners):
@@ -240,7 +262,7 @@ class ProfileManager:
 
     async def persist(self):
         await self.store.async_save({"profiles": self.profiles, "last_applied": self.last_applied,
-                                     "home_defaults": self.home_defaults})
+                                     "home_defaults": self.home_defaults, "custom_names": self.custom_names})
 
     async def _snapshot(self, room_id, home=None):
         """Read both Home and Away settings, or fail closed."""
@@ -266,7 +288,7 @@ class ProfileManager:
     def _update_match(self, room_id, snapshot):
         key = str(room_id)
         matches = [name for name, saved in self.effective_profiles(room_id).items() if self._equal(saved, snapshot)]
-        if not self.profiles.get(key):
+        if not self.profiles.get(key) and not matches:
             matches = ["Normal"]
         self.matches[key] = matches
         self.status[key] = "Matched" if matches else "Custom"
@@ -294,6 +316,8 @@ class ProfileManager:
         return previous if previous in matches else next((x for x in self.names(room_id) if x in matches), "Custom")
 
     async def save(self, room_id, profile):
+        if profile not in self.all_names():
+            raise HomeAssistantError(f"Unknown profile: {profile}. Create it first.")
         key = str(room_id)
         async with self._lock(room_id):
             snapshot = await self._snapshot(room_id)
@@ -306,9 +330,11 @@ class ProfileManager:
             await self.persist()
             self._update_match(room_id, snapshot)
 
-    async def restore(self, room_id, profile):
-        default_profile = base_default_name(profile)
+    async def restore(self, room_id, profile, *, use_default=False):
+        if profile not in self.all_names():
+            raise HomeAssistantError(f"Unknown profile: {profile}")
         key = str(room_id)
+        default_profile = profile if use_default else None
         async with self._lock(room_id):
             available = self.effective_profiles(room_id)
             if default_profile is None and profile not in available:
@@ -323,7 +349,7 @@ class ProfileManager:
                 )
                 self.profiles.setdefault(key, {})["Normal"] = deepcopy(current_normal)
                 await self.persist()
-                if profile == "Normal":
+                if profile == "Normal" and not use_default:
                     self.last_applied[key] = "Normal"
                     await self.persist()
                     self._update_match(room_id, current_normal)
@@ -397,17 +423,44 @@ class ProfileManager:
                     profile, self.coordinator.home_id, room_id, err,
                 )
 
-    async def delete(self, room_id, profile):
+    async def restore_default(self, room_id, profile):
+        if profile not in self.all_names():
+            raise HomeAssistantError(f"Unknown default profile: {profile}")
+        # Use a dedicated internal command, never expose suffixed names in selectors.
+        await self._restore_default_snapshot(room_id, profile)
+
+    async def _restore_default_snapshot(self, room_id, profile):
+        # Reuse the fully validated restore/rollback implementation with a
+        # temporary private command that cannot be supplied via normal restore.
+        await self.restore(room_id, profile, use_default=True)
+
+    async def delete(self, profile):
         if profile in DEFAULT_PROFILES:
-            raise HomeAssistantError("Default profile names cannot be deleted")
-        key = str(room_id)
-        if profile not in self.profiles.get(key, {}):
-            raise HomeAssistantError("Profile does not exist")
-        del self.profiles[key][profile]
-        await self.persist()
-        snapshot = self._snapshots.get(key)
-        if snapshot is not None:
-            self._update_match(room_id, snapshot)
+            raise HomeAssistantError("The four built-in profiles cannot be deleted")
+        async with self._default_lock:
+            if profile not in self.custom_names:
+                raise HomeAssistantError(f"Unknown custom profile: {profile}")
+            self.custom_names.remove(profile)
+            default = self.home_defaults.pop(profile, None)
+            removed = {}
+            for room, saved in self.profiles.items():
+                if profile in saved:
+                    removed[room] = saved.pop(profile)
+            old_applied = dict(self.last_applied)
+            for room, last in list(self.last_applied.items()):
+                if last == profile:
+                    self.last_applied[room] = "Custom"
+            try:
+                await self.persist()
+            except Exception:
+                self.last_applied = old_applied
+                self.custom_names.append(profile)
+                if default is not None:
+                    self.home_defaults[profile] = default
+                for room, snapshot in removed.items():
+                    self.profiles[room][profile] = snapshot
+                raise
+            await self.recheck_home()
 
     async def poll(self, _now=None):
         # Two requests per room per check (Home and Away); failures must not become Custom.

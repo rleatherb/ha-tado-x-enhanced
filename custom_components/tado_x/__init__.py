@@ -72,6 +72,9 @@ SERVICE_SAVE_PROFILE = "save_schedule_profile"
 SERVICE_RESTORE_PROFILE = "restore_schedule_profile"
 SERVICE_LIST_PROFILES = "list_schedule_profiles"
 SERVICE_DELETE_PROFILE = "delete_schedule_profile"
+SERVICE_CREATE_PROFILE = "create_schedule_profile"
+SERVICE_SAVE_PROFILE_DEFAULT = "save_schedule_profile_default"
+SERVICE_RESTORE_PROFILE_DEFAULT = "restore_schedule_profile_default"
 SERVICE_RESET_DEFAULT = "reset_schedule_default"
 SERVICE_SET_SCHEDULE: Final = "set_schedule"
 SERVICE_GET_DAY_REPORT: Final = "get_day_report"
@@ -142,6 +145,8 @@ SERVICE_SET_CLIMATE_TIMER_SCHEMA = vol.Schema(
 
 
 RESET_DEFAULT_SCHEMA = vol.Schema({vol.Optional(ATTR_HOME_DEVICE_ID): cv.string, vol.Required("profile"): vol.In(DEFAULT_PROFILES)})
+
+HOME_PROFILE_SCHEMA = vol.Schema({vol.Optional(ATTR_HOME_DEVICE_ID): cv.string, vol.Required("profile"): vol.All(cv.string, vol.Length(min=1, max=80))})
 
 PROFILE_SCHEMA = vol.Schema({vol.Required(ATTR_ENTITY_ID): cv.entity_id, vol.Required("profile"): vol.All(cv.string, vol.Length(min=1, max=80))})
 
@@ -762,11 +767,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         manager, room_id = profile_target(call)
         try:
             profile = call.data["profile"].strip()
-            default = base_default_name(profile)
-            if default is not None:
-                await manager.save_home_default(room_id, default)
-            else:
-                await manager.save(room_id, profile)
+            await manager.save(room_id, profile)
         except Exception as err:
             raise HomeAssistantError(f"Failed to save schedule profile: {err}") from err
 
@@ -781,20 +782,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         manager, room_id = profile_target(call)
         key = str(room_id)
         return {"profiles": [{"name": n, "saved": n in manager.profiles.get(key, {})} for n in manager.names(room_id)],
-                "home_defaults": [{"name": f"{n} default", "customized": n in manager.home_defaults}
-                                  for n in DEFAULT_PROFILES],
+                "home_defaults": [{"name": n, "customized": n in manager.home_defaults}
+                                  for n in manager.all_names()],
                 "current": manager.selected(room_id), "status": manager.status.get(key, "Unknown"),
                 "matching_profiles": manager.matches.get(key, [])}
 
     async def async_delete_profile(call):
+        manager = get_home_coordinator(call).schedule_profile_manager
+        await manager.delete(call.data["profile"].strip())
+
+    async def async_create_profile(call):
+        manager = get_home_coordinator(call).schedule_profile_manager
+        await manager.create(call.data["profile"].strip())
+
+    async def async_save_profile_default(call):
         manager, room_id = profile_target(call)
-        await manager.delete(room_id, call.data["profile"].strip())
+        await manager.save_home_default(room_id, call.data["profile"].strip())
+
+    async def async_restore_profile_default(call):
+        manager, room_id = profile_target(call)
+        await manager.restore_default(room_id, call.data["profile"].strip())
 
     async def async_reset_schedule_default(call):
         service_coordinator = get_home_coordinator(call)
         manager = service_coordinator.schedule_profile_manager
         name = call.data["profile"].strip()
-        profile = base_default_name(name) or name
+        profile = name
         await manager.reset_home_default(profile)
 
     for service_name, handler, schema, response in (
@@ -802,7 +815,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         (SERVICE_SAVE_PROFILE, async_save_profile, PROFILE_SCHEMA, SupportsResponse.NONE),
         (SERVICE_RESTORE_PROFILE, async_restore_profile, PROFILE_SCHEMA, SupportsResponse.NONE),
         (SERVICE_LIST_PROFILES, async_list_profiles, SERVICE_GET_SCHEDULE_SCHEMA, SupportsResponse.ONLY),
-        (SERVICE_DELETE_PROFILE, async_delete_profile, PROFILE_SCHEMA, SupportsResponse.NONE),
+        (SERVICE_DELETE_PROFILE, async_delete_profile, HOME_PROFILE_SCHEMA, SupportsResponse.NONE),
+        (SERVICE_CREATE_PROFILE, async_create_profile, HOME_PROFILE_SCHEMA, SupportsResponse.NONE),
+        (SERVICE_SAVE_PROFILE_DEFAULT, async_save_profile_default, PROFILE_SCHEMA, SupportsResponse.NONE),
+        (SERVICE_RESTORE_PROFILE_DEFAULT, async_restore_profile_default, PROFILE_SCHEMA, SupportsResponse.NONE),
     ):
         if not hass.services.has_service(DOMAIN, service_name):
             hass.services.async_register(DOMAIN, service_name, handler, schema=schema, supports_response=response)
