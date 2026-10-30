@@ -22,7 +22,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import API_QUOTA_FREE_TIER, API_QUOTA_PREMIUM, DOMAIN, FEATURE_ENTITY_MAP
+from .const import DEVICE_TYPE_NAMES, API_QUOTA_FREE_TIER, API_QUOTA_PREMIUM, DOMAIN, FEATURE_ENTITY_MAP
 from .coordinator import (
     TadoXData,
     TadoXDataUpdateCoordinator,
@@ -678,23 +678,6 @@ class TadoXDeviceSensor(CoordinatorEntity[TadoXDataUpdateCoordinator], SensorEnt
                 identifiers={(DOMAIN, self._serial_number)},
             )
 
-        # French names for device types (used in device name)
-        device_type_names_fr = {
-            "VA04": "Vanne",
-            "SU04": "Capteur Temp",
-            "TR04": "Récepteur",  # Wireless Receiver X
-            "RU04": "Thermostat",  # Wired Smart Thermostat X
-            "IB02": "Bridge X",
-        }
-
-        # English model names (used in device model field)
-        device_type_models = {
-            "VA04": "Radiator Valve X",
-            "SU04": "Temperature Sensor X",
-            "TR04": "Wireless Receiver X",
-            "RU04": "Wired Smart Thermostat X",
-            "IB02": "Bridge X",
-        }
 
         # Determine via_device - link to room if device has one, otherwise to home
         via_device_identifier = (
@@ -704,7 +687,7 @@ class TadoXDeviceSensor(CoordinatorEntity[TadoXDataUpdateCoordinator], SensorEnt
         )
 
         # Generate device name with room name and numbering
-        base_name = device_type_names_fr.get(device.device_type, device.device_type)
+        base_name = DEVICE_TYPE_NAMES.get(device.device_type, device.device_type)
 
         if device.room_id and device.room_name:
             # Count devices of same type in same room to determine numbering
@@ -728,7 +711,7 @@ class TadoXDeviceSensor(CoordinatorEntity[TadoXDataUpdateCoordinator], SensorEnt
             identifiers={(DOMAIN, self._serial_number)},
             name=device_name,
             manufacturer="Tado",
-            model=device_type_models.get(device.device_type, device.device_type),
+            model=DEVICE_TYPE_NAMES.get(device.device_type, device.device_type),
             serial_number=device.serial_number,
             sw_version=device.firmware_version,
             via_device_id=self.coordinator.parent_device_ids[via_device_identifier],

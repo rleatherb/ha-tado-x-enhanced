@@ -46,7 +46,7 @@ This integration is a development of the original [Tado X integration by exabird
 
   - Changes to temperature via Home Assistant thermostat cards now work the same way as if the change is made on a Tado device, using the per-room settings shown in the Tado app to determine whether the temperature change is for a set time period, until the next schedule change, or lasts indefinitely.
 
-  - The per-room settings for how manual control of temperature should be interpreted (indefinite, until next schedule change, for a defined period of time) are now available as sensors that can be set and updated.
+  - The per-room settings for how manual control of temperature should be interpreted (indefinite, until next schedule change, for a defined period of time) are now available as a per-room Termination Type select entity and Timer Duration number entity.
 
 - Support to read and set holiday mode
 

@@ -60,6 +60,15 @@ DEVICE_TYPE_THERMOSTAT: Final = "RU04"  # Tado X Wired Smart Thermostat
 DEVICE_TYPE_BRIDGE: Final = "IB02"  # Tado X Bridge
 DEVICE_TYPE_SENSOR: Final = "SU04"  # Tado X Temperature Sensor
 
+# Default English device names used for both device name and model.
+DEVICE_TYPE_NAMES: Final = {
+    "VA04": "Radiator Valve X",
+    "SU04": "Temperature Sensor X",
+    "TR04": "Wireless Receiver X",
+    "RU04": "Wired Smart Thermostat X",
+    "IB02": "Bridge X",
+}
+
 # Termination types
 TERMINATION_MANUAL: Final = "MANUAL"
 TERMINATION_TIMER: Final = "TIMER"

@@ -11,7 +11,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DEVICE_TYPE_NAMES, DOMAIN
 from .coordinator import TadoXDataUpdateCoordinator, TadoXDevice, TadoXRoom
 
 _LOGGER = logging.getLogger(__name__)
@@ -80,21 +80,6 @@ class TadoXChildLockSwitch(CoordinatorEntity[TadoXDataUpdateCoordinator], Switch
                 identifiers={(DOMAIN, self._serial_number)},
             )
 
-        device_type_names_fr = {
-            "VA04": "Vanne",
-            "SU04": "Capteur Temp",
-            "TR04": "Récepteur",  # Wireless Receiver X
-            "RU04": "Thermostat",  # Wired Smart Thermostat X
-            "IB02": "Bridge X",
-        }
-
-        device_type_models = {
-            "VA04": "Radiator Valve X",
-            "SU04": "Temperature Sensor X",
-            "TR04": "Wireless Receiver X",
-            "RU04": "Wired Smart Thermostat X",
-            "IB02": "Bridge X",
-        }
 
         via_device_identifier = (
             (DOMAIN, f"{self.coordinator.home_id}_{device.room_id}")
@@ -102,7 +87,7 @@ class TadoXChildLockSwitch(CoordinatorEntity[TadoXDataUpdateCoordinator], Switch
             else (DOMAIN, str(self.coordinator.home_id))
         )
 
-        base_name = device_type_names_fr.get(device.device_type, device.device_type)
+        base_name = DEVICE_TYPE_NAMES.get(device.device_type, device.device_type)
 
         if device.room_id and device.room_name:
             same_type_in_room = sorted([
@@ -122,7 +107,7 @@ class TadoXChildLockSwitch(CoordinatorEntity[TadoXDataUpdateCoordinator], Switch
             identifiers={(DOMAIN, self._serial_number)},
             name=device_name,
             manufacturer="Tado",
-            model=device_type_models.get(device.device_type, device.device_type),
+            model=DEVICE_TYPE_NAMES.get(device.device_type, device.device_type),
             serial_number=device.serial_number,
             sw_version=device.firmware_version,
             via_device_id=self.coordinator.parent_device_ids[via_device_identifier],

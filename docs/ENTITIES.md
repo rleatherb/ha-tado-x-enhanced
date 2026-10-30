@@ -8,7 +8,8 @@ The device-model list below is illustrative, not a guarantee that every feature 
 | :--- | :--- |
 | VA04 | Radiator Valve X |
 | SU04 | Temperature Sensor X |
-| TR04 | Thermostat X |
+| TR04 | Wireless Receiver X |
+| RU04 | Wired Smart Thermostat X |
 | IB02 | Bridge X |
 
 Available entities vary with hardware, account capabilities and configuration.
@@ -36,8 +37,8 @@ Available entities vary with hardware, account capabilities and configuration.
 | API quota remaining | The number of API calls that remain within the daily allowance. |  |
 | API reset time | The daily API allowance is reset each day. The time that this happens varies between different users. This sensor monitors the API calls remaining to determine when the reset time will be. Note that this sensor will read 'Unknown' for up to 24 hours after first being installed, while the integration is determining when the reset time is. | 1.0.0 |
 | Hot water boost ends | If water heating is boosted, this sensor records when the boost period will end. It is Unknown if water heating is not boosted. | 1.0.0 |
-| Hot water next schedule change | Records the time for the next scheduled water heating change. Unknown if heating is off or constant | 1.0.0 |
-| Hot Water State | Records the status for hot water heating. This can be `AWAY_OFF` / `AWAY_ON` / `SCHEDULE_ON` /  `SCHEDULE_OFF` / `BOOST` | 1.0.0 |
+| Hot water next schedule change | Records the time for the next scheduled water heating change. Available when Tado provides a next-change timestamp in `SCHEDULE_ON` or `SCHEDULE_OFF` state; otherwise Unknown (including Away modes, explicitly Off, or no forthcoming change) | 1.0.0 |
+| Hot Water State | Records the status for hot water heating. This can be `OFF` / `AWAY_OFF` / `AWAY_ON` / `SCHEDULE_ON` / `SCHEDULE_OFF` / `BOOST`. Explicitly switching hot water off can produce `OFF` even while the home is Away; `AWAY_OFF` is a distinct API state. The Hot Water Mode selector maps `OFF` to Off and the Away schedule states to Schedule | 1.0.0 |
 | Outdoor Temperature | The outdoor temperature as returned by Tado for your location |  |
 | Solar Intensity | A percentage as returned by Tado for your location |  |
 | Weather State | The weather description as returned by Tado for your location. Depends on weather being selected in the home configuration. |  |
@@ -81,7 +82,7 @@ These calculations do not require additional API calls. They are estimates, not 
 | Refresh Schedule | Button | Click to refresh the heating schedule information. Schedules are refreshed periodically, but if the heating timing is altered from the Tado app, it is possible for the Home Assistant settings to be out of sync. Click this button to update the settings. | 1.0.0 |
 | Restore schedule profile | Selector | Loads a saved heating schedule for the room. See Heating Schedules for a full description. | 1.0.0 |
 | Save schedule profile | Selector | Saves the current room's heating schedule to one of the named locations. See Heating Schedules for a full description | 1.0.0 |
-| Termination Type | Selector | For each room, the Tado app allows setting of how manual device control will alter the temperature. Allowed settings: `TIMER` - the new temperature lasts for Timer Duration; `MANUAL` - the new temperature is set indefinitely, until you resume schedule`NEXT_TIME_BLOCK` - the new temperature is set until the next scheduled change | 1.0.0 |
+| Termination Type | Selector | For each room, the Tado app allows setting of how manual device control will alter the temperature. Allowed settings: `TIMER` - the new temperature lasts for Timer Duration; `MANUAL` - the new temperature is set indefinitely, until you resume schedule; `NEXT_TIME_BLOCK` - the new temperature is set until the next scheduled change | 1.0.0 |
 | Timer Duration | Number | This sets the length of time associated with Termination Type of Timer. | 1.0.0 |
 
 The Restore schedule profile selector also exposes match information as attributes:
@@ -104,7 +105,7 @@ The integration initially captures the current room schedule as **Normal** if th
 
 ## Tado X Devices
 
-Applies to Radiator Valve X, Temperature Sensor X, PR04, Bridge X
+Applies to supported Tado X devices, including Radiator Valve X, Temperature Sensor X, Wireless Receiver X, Wired Smart Thermostat X and Bridge X
 
 | Device info | Description | Version |
 | :--- | :--- | :---: |
@@ -146,7 +147,7 @@ Applies to Radiator Valve X, Temperature Sensor X, PR04, Bridge X
 | Connectivity | Binary sensor (connectivity) | Connected if device is connected |  |
 
 
-## Tado PR04
+## Tado Wireless Receiver X (TR04)
 
 | Sensors | Type | Description | Version |
 | :--- | :--- | :--- | :--- |
