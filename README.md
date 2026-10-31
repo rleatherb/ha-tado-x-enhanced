@@ -11,12 +11,15 @@ Tado X Enhanced builds on the original [Tado X integration by exabird](https://g
 ## Highlights
 
 - **Multiple homes:** Configure more than one Tado home, with separate coordinators, home-scoped operations and profile storage. Rooms with the same numerical ID in different homes remain distinct.
-- **Heating control:** Room thermostats, manual overrides, termination modes, open-window detection and home-wide heating quick actions.
-- **Schedules:** Read and change Home schedules and Away settings; inspect next schedule changes, target temperatures and power states.
-- **Schedule profiles:** Save and restore **Normal**, **Alternative**, **Eco** and **Not in use** profiles per room, with separate home-wide defaults and factory fallbacks. A **Custom** state identifies schedules that do not match a saved profile.
+- **Heating control:** Room thermostats, manual overrides, termination modes, open-window detection and home-wide heating quick actions. Ensures Home Assistant thermostat cards behave the same way as when temperature is changed on a Tado device.
+- **Schedules:** Read and change Home schedules and Away settings; inspect next schedule changes, target temperatures and power states. Added `next_schedule_change`, `next_schedule_temperature`, and `next_schedule_power` sensors for each room.
+- **Schedule profiles:** Save and restore **Normal**, **Alternative**, **Eco** and **Not in use** profiles per room, with separate home-wide defaults and factory fallbacks. As well as these four pre-defined schedule types, additional unlimited named profiles can also be added. A **Custom** state identifies schedules that do not match a saved profile.
+- **Holiday mode:** Get and set Holiday mode (requires Tado Auto-Assist subscription)
+- **Historic data:** Retrieve historic data for temperature, humidity and heating (requires Tado Auto-Assist subscription for days before today).
 - **Hot water:** Where supported, view hot-water state, choose Schedule/Off/Boost and inspect boost or schedule-change timing.
+- **Open window status:** Open window expiry and remaining time available via `open_window_detected`, `open_window_ends_at`, and `open_window_remaining_minutes `climate attributes.
 - **API monitoring:** Track quota limit, remaining calls, current usage and estimated daily usage. Learn the approximate reset time from server-reported quota observations rather than assuming a fixed clock time.
-- **Additional data:** Heating running time, weather, air comfort, mobile presence, historical day reports and Energy IQ actions where supported and enabled.
+- **Additional data:** Heating running time, weather, air comfort, mobile presence and Energy IQ actions where supported and enabled.
 - **Five languages:** English, German, French, Italian and Spanish.
 
 ## Installation through HACS
@@ -29,7 +32,7 @@ This repository is public and can be added to HACS as a custom repository. The o
 4. Open the repository entry in HACS and select **Download**.
 5. Restart Home Assistant.
 6. Go to **Settings → Devices & services → Add integration**, search for **Tado X Enhanced**, and complete authentication and home selection.
-7. Complete the **Configuration** settings as described below, to be consistent with your Auto-Assist subscription. Having this subscription is strongly recommended for optimum use, allowing a frequent Main update interval and allowing Schedule polling. 
+7. Complete the **Configuration** settings as described below, to be consistent with your Auto-Assist subscription. Having this subscription is strongly recommended for optimum use, allowing a frequent Main update interval and allowing Schedule polling.
 
 This is a **custom repository** installation; inclusion in the default HACS catalogue is not required. Exact HACS menu labels can vary by version.
 
