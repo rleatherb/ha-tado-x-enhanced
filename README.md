@@ -4,7 +4,7 @@ An independently maintained custom integration for controlling and monitoring **
 
 Tado X Enhanced builds on the original [Tado X integration by exabird](https://github.com/exabird/ha-tado-x), adding multi-home support, Home and Away schedule management, reusable schedule profiles, domestic hot-water controls, richer room diagnostics and API quota forecasting.
 
-> **Project status:** Preparing the first independent release (`1.0.0`). Some features depend on your Tado hardware, subscription and API responses. This is a cloud-based integration and is subject to Tado API limits.
+> **Project status:** Initial independent version `1.0.0` validated for release; the official GitHub `v1.0.0` release is pending publication. Some features depend on your Tado hardware, subscription and API responses. This is a cloud-based integration and is subject to Tado API limits.
 
 **[Changelog](CHANGELOG.md)** · [Report an issue](https://github.com/rleatherb/ha-tado-x-enhanced/issues) · [Releases](https://github.com/rleatherb/ha-tado-x-enhanced/releases)
 
@@ -21,7 +21,7 @@ Tado X Enhanced builds on the original [Tado X integration by exabird](https://g
 
 ## Installation through HACS
 
-Once this repository is **public** and a release has been published:
+This repository is public and can be added to HACS as a custom repository. The official `v1.0.0` GitHub release is pending publication:
 
 1. Install [HACS](https://www.hacs.xyz/) if it is not already installed.
 2. In Home Assistant, open **HACS → Custom repositories**.
@@ -38,14 +38,19 @@ Tado X Enhanced uses the same Home Assistant integration domain, `tado_x`, as Ex
 
 **Back up Home Assistant before switching.** Make a complete backup including configuration entries, `.storage` data and custom integrations. Record important entity IDs and the configured Tado homes, and ensure the backup can be restored.
 
-1. **Register the new repository.** In HACS, add `https://github.com/rleatherb/ha-tado-x-enhanced` as a custom **Integration** repository. If HACS reports a duplicate-domain or repository conflict, stop and resolve it before proceeding.
-2. **Remove the old HACS installation**, if it was installed through HACS. This concerns the **downloaded integration files or HACS repository association**, not the Tado X configuration entries. **Do not delete your Tado X homes under Settings → Devices & services.** HACS menu labels and removal behaviour can vary by version.
-3. **Install Tado X Enhanced** through HACS. Before restarting, confirm that the replacement code is installed under `custom_components/tado_x/`. Do not allow two sets of files to coexist under the same domain. If HACS cannot perform the switch, use a carefully controlled manual file replacement instead; do not delete configuration entries to resolve the conflict.
-4. **Restart Home Assistant** after the replacement code is in place.
-5. **Verify the migration.** Check that the original Tado home entries load, existing climate and other entity IDs remain available, actions work, and any relevant hot-water and schedule controls behave as expected. Inspect Home Assistant logs for errors. For installations with multiple homes, test both homes and room-specific routing.
-6. **Check schedule-profile data.** The Enhanced integration can capture an existing room's live Home/Away schedule as its initial **Normal** profile when no saved Normal profile exists. Verify the capture before making changes to live schedules; stored profile data from unrelated development builds is not guaranteed to migrate.
+The following HACS handover was tested successfully on a separate Home Assistant installation with two configured Tado homes. HACS interface wording can vary between versions; this procedure is not a guarantee of compatibility with every older installation.
 
-**The exact HACS handover from the original repository to this repository still requires live testing.** Removing a Home Assistant integration configuration entry is different from uninstalling downloaded files and can remove entities and integration-managed information. If the replacement fails, restore your backup and report the problem with redacted logs.
+1. **Register the Enhanced repository.** In HACS, add `https://github.com/rleatherb/ha-tado-x-enhanced` as a custom **Integration** repository. Both repository entries may initially appear separately in HACS, although they use the same integration domain.
+2. **Remove the original Exabird installation through HACS.** Open the original **Tado X** repository entry in HACS and select **Remove**. In the tested HACS version, a warning appeared: *Integration is configured*. Selecting **IGNORE** bypassed this warning, followed by a separate **REMOVE** confirmation. **Do not use NAVIGATE to delete the Home Assistant integration configuration, and do not remove the Tado X homes under Settings → Devices & services.** The HACS removal temporarily removes the old integration files; do not restart Home Assistant at this point.
+3. **Download Tado X Enhanced.** Open its HACS repository entry and select **Download**. Confirm that the target directory is `/config/custom_components/tado_x` and that HACS reports **Pending restart**. Complete this download **before restarting Home Assistant**. If the download fails, do not restart until you have restored a working integration package or planned recovery from your backup.
+4. **Restart Home Assistant once**, after the Enhanced files are in place.
+5. **Verify the migration.** Check that the original Tado home entries load, existing climate and other entity IDs remain available, and no duplicate devices appear. Inspect Home Assistant logs. Verify any relevant hot-water and schedule controls before relying on them. For multiple homes, check both homes and room-specific routing.
+6. **Confirm HACS ownership.** Ensure **Tado X Enhanced** is shown as installed in HACS and the original Exabird repository is no longer shown as installed.
+7. **Check schedule-profile data.** The Enhanced integration can capture an existing room's live Home/Away schedule as its initial **Normal** profile when no saved Normal profile exists. Verify the capture before making changes to live schedules; stored profile data from unrelated development builds is not guaranteed to migrate.
+
+**Observed migration result (October 2026):** Two existing homes loaded; all 105 devices remained, representative existing entity IDs were unchanged, and the entity count increased from 660 to 942 as Enhanced entities became available. No `tado_x` startup errors or warnings were reported. HACS showed Enhanced installed and Exabird no longer installed. English default device names also appeared correctly. These observations demonstrate a successful test installation, not exhaustive validation of every older version or feature.
+
+**Important:** Removing downloaded integration files through HACS is different from deleting a Home Assistant integration configuration entry, which can remove entities and integration-managed information. If replacement fails, restore your backup and report the problem with redacted logs.
 
 ## Detailed documentation
 
@@ -143,7 +148,7 @@ These calculations do not require additional API calls. They are estimates, not 
 - Tado's API is not controlled by this project and may change or impose request limits.
 - Multiple homes are supported, but verify service targeting and quota reporting when configuring more than one home.
 - The minimum supported Home Assistant release has **not yet been established by testing**. Do not infer compatibility solely from the manifest version.
-- The first independent release should be validated on a test Home Assistant installation before wider distribution.
+- Version `1.0.0` has been validated on a separate Home Assistant test installation, including a HACS handover from the original Exabird integration; compatibility with every earlier version and Home Assistant release has not been established.
 
 ## Releases and changes
 

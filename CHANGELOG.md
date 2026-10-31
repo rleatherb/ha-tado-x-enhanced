@@ -8,7 +8,7 @@ The project is independently maintained and is derived from the original Tado X 
 
 **[Readme](README.md)** · [Report an issue](https://github.com/rleatherb/ha-tado-x-enhanced/issues) · [Releases](https://github.com/rleatherb/ha-tado-x-enhanced/releases)
 
-## [1.0.0](https://github.com/rleatherb/ha-tado-x-enhanced/releases/tag/1.0.0) - Initial Release
+## [1.0.0](https://github.com/rleatherb/ha-tado-x-enhanced/releases/tag/v1.0.0) - Initial Release
 
 This integration is a development of the original [Tado X integration by exabird](https://github.com/exabird/ha-tado-x) (version 1.8.11). Changes from this are as below:
 
@@ -79,6 +79,8 @@ This integration is a development of the original [Tado X integration by exabird
 - The previous fixed daily API reset-time assumption.
 
 ### Compatibility notes
+
+- A HACS migration from Exabird's original integration to Enhanced was successfully tested in October 2026 on a two-home Home Assistant installation: 105 existing devices were retained, checked entity IDs were preserved, and the integration loaded without reported startup errors or warnings. The documented handover avoids deleting existing Home Assistant configuration entries. This is not a guarantee for every earlier version.
 
 - The Home Assistant integration domain remains `tado_x`. This project **replaces** other installations using the same domain; it cannot run alongside the original integration in one Home Assistant instance.
 - Back up Home Assistant before replacing an existing installation. Verify both home entries, entities, and stored schedule profiles after migration.
