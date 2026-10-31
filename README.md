@@ -4,7 +4,7 @@ An independently maintained custom integration for controlling and monitoring **
 
 Tado X Enhanced builds on the original [Tado X integration by exabird](https://github.com/exabird/ha-tado-x), adding multi-home support, Home and Away schedule management, reusable schedule profiles, domestic hot-water controls, richer room diagnostics and API quota forecasting.
 
-> **Project status:** Initial independent version `1.0.0` validated for release; the official GitHub `v1.0.0` release is pending publication. Some features depend on your Tado hardware, subscription and API responses. This is a cloud-based integration and is subject to Tado API limits.
+> **Project status:** Initial independent version `1.0.0` is published as the official [GitHub v1.0.0 release](https://github.com/rleatherb/ha-tado-x-enhanced/releases/tag/v1.0.0). Some features depend on your Tado hardware, subscription and API responses. This is a cloud-based integration and is subject to Tado API limits.
 
 **[Changelog](CHANGELOG.md)** · [Report an issue](https://github.com/rleatherb/ha-tado-x-enhanced/issues) · [Releases](https://github.com/rleatherb/ha-tado-x-enhanced/releases)
 
@@ -21,7 +21,7 @@ Tado X Enhanced builds on the original [Tado X integration by exabird](https://g
 
 ## Installation through HACS
 
-This repository is public and can be added to HACS as a custom repository. The official `v1.0.0` GitHub release is pending publication:
+This repository is public and can be added to HACS as a custom repository. The official [v1.0.0 release](https://github.com/rleatherb/ha-tado-x-enhanced/releases/tag/v1.0.0) is available on GitHub:
 
 1. Install [HACS](https://www.hacs.xyz/) if it is not already installed.
 2. In Home Assistant, open **HACS → Custom repositories**.
