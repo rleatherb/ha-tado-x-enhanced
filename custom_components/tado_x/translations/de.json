@@ -1,0 +1,608 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Tado X Authentifizierung",
+        "description": "Klicken Sie auf „OK“, um den Authentifizierungsprozess mit Tado zu starten. Sie werden weitergeleitet, um diese Integration zu autorisieren."
+      },
+      "auth": {
+        "title": "Tado X autorisieren",
+        "description": "Bitte besuchen Sie die folgende URL und geben Sie den Code ein, um Home Assistant zu autorisieren:\n\n**URL:** {verification_uri}\n\n**Code:** `{user_code}`\n\nNach der Autorisierung klicken Sie auf „OK“."
+      },
+      "select_home": {
+        "title": "Zuhause auswählen",
+        "description": "Es wurden mehrere Tado Häuser gefunden. Bitte wählen Sie das zuhause aus, das Sie konfigurieren möchten.",
+        "data": {
+          "home_id": "Home"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Tado X erneut authentifizieren",
+        "description": "Ihre Tado X-Authentifizierung ist abgelaufen. Klicken Sie auf „OK“, um sich erneut zu authentifizieren."
+      },
+      "reauth_auth": {
+        "title": "Tado X autorisieren",
+        "description": "Bitte besuchen Sie die folgende URL und geben Sie den Code ein, um Home Assistant zu autorisieren:\n\n**URL:** {verification_uri}\n\n**Code:** `{user_code}`\n\nNach der Autorisierung klicken Sie auf „OK“."
+      }
+    },
+    "error": {
+      "auth_error": "Authentifizierung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "auth_timeout": "Authentifizierung ist abgelaufen. Bitte stellen Sie sicher, dass Sie die Autorisierung abgeschlossen haben, und versuchen Sie es erneut.",
+      "cannot_connect": "Verbindung zu Tado nicht möglich. Bitte überprüfen Sie Ihre Internetverbindung.",
+      "no_homes": "Kein Tado Zuhause gefunden.",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten."
+    },
+    "abort": {
+      "already_configured": "Dieses Tado Zuhause ist bereits konfiguriert.",
+      "reauth_successful": "Erneute Authentifizierung erfolgreich.",
+      "unknown": "Ein unbekannter Fehler ist aufgetreten."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Tado X Einstellungen",
+        "description": "Konfigurieren Sie Ihre Tado X-Integration-Einstellungen.\n\n**API-Kontingent:**\n- Ohne AI-Assist: 100 Anfragen/Tag → Aktualisierungen alle 45 Minuten\n- Mit AI-Assist: 20.000 Anfragen/Tag → Aktualisierungen alle 30 Sekunden",
+        "data": {
+          "has_auto_assist": "AI-Assist Abonnement",
+          "scan_interval": "Aktualisierungsintervall (Sekunden)",
+          "enable_weather": "Wettersensoren aktivieren",
+          "enable_mobile_devices": "Tracking für mobile Geräte aktivieren",
+          "enable_air_comfort": "Luftkomfortsensoren aktivieren",
+          "enable_running_times": "Heizzeit-Sensoren aktivieren",
+          "enable_flow_temp": "Enable flow temperature control",
+          "enable_hot_water": "Enable hot water sensor",
+          "enable_schedule_polling": "Zeitpläne automatisch auf Änderungen prüfen",
+          "schedule_poll_interval": "Prüfintervall für Zeitpläne (Sekunden)"
+        },
+        "data_description": {
+          "has_auto_assist": "Aktivieren Sie diese Option, wenn Sie ein AI-Assist-Abonnement haben. Dadurch wird das Aktualisierungsintervall automatisch angepasst.",
+          "scan_interval": "Wie oft die Tado-API abgefragt werden soll (in Sekunden). Minimum: 30 s, Maximum: 3600 s (1 Stunde). Ohne AI-Assist bei 2700 s (45 min) bleiben, um unter 100 Anfragen/Tag zu bleiben.",
+          "enable_weather": "Aktiviert Sensoren für Außentemperatur, Sonnenintensität und Wetterbedingungen. Verwendet 1 API-Aufruf pro Aktualisierung.",
+          "enable_mobile_devices": "Aktiviert Gerätetracker für Mobiltelefone mit Geofencing. Verwendet 1 API-Aufruf pro Aktualisierung.",
+          "enable_air_comfort": "Aktiviert Sensoren für Luftfrische und Komfort pro Raum. Verwendet 1 API-Aufruf pro Aktualisierung.",
+          "enable_running_times": "Aktiviert den Heizzeit-Sensor für jeden Raum. Verwendet 1 API-Aufruf pro Aktualisierung.",
+          "enable_flow_temp": "Enables max flow temperature slider and auto-adaptation switch (requires OpenTherm boiler). Uses 1 API call per update.",
+          "enable_hot_water": "Enables domestic hot water state sensor. Uses 1 API call per update.",
+          "enable_schedule_polling": "Prüft Home- und Away-Zeitpläne. Benötigt 2 API-Aufrufe pro Raum und Aktualisierung. Mit Auto-Assist standardmäßig aktiviert, sonst deaktiviert.",
+          "schedule_poll_interval": "Prüfintervall bei aktivierter Funktion. Minimum: 900 Sekunden (15 Minuten); Standard: 3600 Sekunden (1 Stunde); Maximum: 86400 Sekunden (24 Stunden)."
+        }
+      }
+    }
+  },
+  "services": {
+    "set_temperature_offset": {
+      "name": "Temperatur-Offset einstellen",
+      "description": "Kalibriert die Temperaturanzeige eines Tado X Geräts (Ventil oder Sensor) durch Anpassung des Offsets.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Zuhause-Gerät",
+          "description": "Zu kalibrierendes Tado X Gerät."
+        },
+        "offset": {
+          "name": "Temperatur-Offset",
+          "description": "Temperaturkorrektur in °C. Positive Werte erhöhen, negative senken die Anzeige."
+        }
+      }
+    },
+    "add_meter_reading": {
+      "name": "Zählerstand hinzufügen",
+      "description": "Überträgt einen Zählerstand an Tado Energy IQ.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Zuhause-Gerät",
+          "description": "Bei nur einem Tado X Zuhause optional; bei mehreren Zuhause-Geräten das gewünschte Tado X Zuhause-Gerät auswählen."
+        },
+        "reading": {
+          "name": "Zählerstand",
+          "description": "Zählerstand als Ganzzahl."
+        },
+        "date": {
+          "name": "Datum",
+          "description": "Datum im Format JJJJ-MM-TT, standardmäßig heute."
+        }
+      }
+    },
+    "set_eiq_tariff": {
+      "name": "Energietarif festlegen",
+      "description": "Legt einen Energietarif für die Kostenberechnung in Tado Energy IQ fest.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Zuhause-Gerät",
+          "description": "Bei nur einem Tado X Zuhause optional; bei mehreren Zuhause-Geräten das gewünschte Tado X Zuhause-Gerät auswählen."
+        },
+        "tariff": {
+          "name": "Tarif",
+          "description": "Preis pro Einheit (z. B. 0,85 €/m³)."
+        },
+        "unit": {
+          "name": "Einheit",
+          "description": "Energieeinheit: m³ oder kWh."
+        },
+        "start_date": {
+          "name": "Startdatum",
+          "description": "Startdatum im Format JJJJ-MM-TT oder ISO-8601-Datum/Uhrzeit."
+        },
+        "end_date": {
+          "name": "Enddatum",
+          "description": "Enddatum im Format JJJJ-MM-TT oder ISO-8601-Datum/Uhrzeit."
+        }
+      }
+    },
+    "set_climate_timer": {
+      "name": "Heizungsübersteuerung einstellen",
+      "description": "Stellt eine Temperaturübersteuerung ein. Timer (Standard): Temperatur und Dauer erforderlich; Manuell: nur Temperatur; Nächster Zeitblock: Temperatur erforderlich, keine Dauer.",
+      "fields": {
+        "entity_id": {
+          "name": "Klima-Entität",
+          "description": "Tado X Raum zum Abfragen oder Steuern."
+        },
+        "temperature": {
+          "name": "Temperatur",
+          "description": "Für Timer, Manuell und Nächster Zeitblock erforderlich."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Nur für Timer erforderlich (1–1440 Minuten); für andere Modi ignoriert."
+        },
+        "termination_type": {
+          "name": "Beendigungsart",
+          "description": "Timer ist Standard (Temperatur und Dauer erforderlich); Manuell und Nächster Zeitblock benötigen nur die Temperatur."
+        }
+      }
+    },
+    "get_schedule": {
+      "name": "Zeitplan abrufen",
+      "description": "Liest den aktuellen Heizzeitplan eines Raums und gibt die Zeitblöcke zurück.",
+      "fields": {
+        "entity_id": {
+          "name": "Klima-Entität",
+          "description": "Tado X Raum zum Abfragen oder Steuern."
+        }
+      }
+    },
+    "get_away_schedule": {
+      "name": "Abwesenheitszeitplan abrufen",
+      "description": "Liest die gespeicherten Abwesenheitseinstellungen eines Raums, ohne sie zu ändern.",
+      "fields": {
+        "entity_id": {
+          "name": "Klima-Entität",
+          "description": "Tado X Raum zum Abfragen oder Steuern."
+        }
+      }
+    },
+    "set_away_schedule": {
+      "name": "Abwesenheitszeitplan einstellen",
+      "description": "Ändert Abwesenheitsmodus, Temperatur und optional die Vorheizstufe eines Raums. Gespeicherte Profile bleiben unverändert.",
+      "fields": {
+        "entity_id": {
+          "name": "Klima-Entität",
+          "description": "Tado X Raum zum Abfragen oder Steuern."
+        },
+        "mode": {
+          "name": "Abwesenheitsmodus",
+          "description": "Abwesenheits-Temperaturregelung ein- oder ausschalten."
+        },
+        "away_temperature": {
+          "name": "Abwesenheitstemperatur",
+          "description": "Temperatur in °C für den aktivierten Abwesenheitsmodus; ohne Eingabe bleibt der bisherige Wert erhalten."
+        },
+        "preheating_level": {
+          "name": "Vorheizstufe",
+          "description": "Optionale Vorheizstufe; ohne Eingabe bleibt die bisherige Einstellung erhalten."
+        }
+      }
+    },
+    "set_schedule": {
+      "name": "Zeitplan einstellen",
+      "description": "Ersetzt die Heizzeitblöcke eines Raums für den angegebenen Tagestyp.",
+      "fields": {
+        "entity_id": {
+          "name": "Klima-Entität",
+          "description": "Tado X Raum zum Abfragen oder Steuern."
+        },
+        "day_type": {
+          "name": "Tagestyp",
+          "description": "Tag oder Tagesgruppe für den Zeitplan."
+        },
+        "schedule": {
+          "name": "Zeitblöcke",
+          "description": "JSON-Liste der Zeitblöcke mit Beginn, Ende und Temperatur."
+        }
+      }
+    },
+    "get_day_report": {
+      "name": "Tagesbericht abrufen",
+      "description": "Liest historische Temperatur-, Feuchtigkeits- und Heizdaten für Raum und Datum. Vergangene Tage erfordern Auto-Assist (Premium).",
+      "fields": {
+        "entity_id": {
+          "name": "Klima-Entität",
+          "description": "Tado X Raum zum Abfragen oder Steuern."
+        },
+        "date": {
+          "name": "Datum",
+          "description": "Datum im Format JJJJ-MM-TT, standardmäßig heute."
+        }
+      }
+    },
+    "get_holiday_mode": {
+      "name": "Urlaubsmodus abrufen",
+      "description": "Liest die Urlaubseinstellungen des Zuhauses. Auto-Assist (Premium) erforderlich.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Zuhause-Gerät",
+          "description": "Bei nur einem Tado X Zuhause optional; bei mehreren Zuhause-Geräten das gewünschte Tado X Zuhause-Gerät auswählen."
+        }
+      }
+    },
+    "set_holiday_mode": {
+      "name": "Urlaubsmodus einstellen",
+      "description": "Aktiviert oder deaktiviert den Urlaubsmodus und legt optional Anfang und Ende fest. Auto-Assist (Premium) erforderlich.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Zuhause-Gerät",
+          "description": "Bei nur einem Tado X Zuhause optional; bei mehreren Zuhause-Geräten das gewünschte Tado X Zuhause-Gerät auswählen."
+        },
+        "enabled": {
+          "name": "Aktiviert",
+          "description": "Urlaubsmodus einschalten (true) oder ausschalten (false)."
+        },
+        "start_date": {
+          "name": "Startdatum",
+          "description": "Startdatum im Format JJJJ-MM-TT oder ISO-8601-Datum/Uhrzeit."
+        },
+        "end_date": {
+          "name": "Enddatum",
+          "description": "Enddatum im Format JJJJ-MM-TT oder ISO-8601-Datum/Uhrzeit."
+        }
+      }
+    },
+    "save_schedule_profile": {
+      "name": "Zeitplanprofil speichern",
+      "description": "Save the current Home and Away schedule to an existing room profile.",
+      "fields": {
+        "entity_id": {
+          "name": "Klima-Entität"
+        },
+        "profile": {
+          "name": "Profilname"
+        }
+      }
+    },
+    "restore_schedule_profile": {
+      "name": "Zeitplanprofil wiederherstellen",
+      "description": "Restore an existing room profile with home-default fallback.",
+      "fields": {
+        "entity_id": {
+          "name": "Klima-Entität"
+        },
+        "profile": {
+          "name": "Profilname"
+        }
+      }
+    },
+    "list_schedule_profiles": {
+      "name": "Zeitplanprofile auflisten",
+      "description": "Listet vorhandene und nicht gespeicherte Raumzeitplanprofile auf.",
+      "fields": {
+        "entity_id": {
+          "name": "Klima-Entität"
+        }
+      }
+    },
+    "delete_schedule_profile": {
+      "name": "Zeitplanprofil löschen",
+      "description": "Delete a user-created home-wide profile class; built-in profiles cannot be deleted.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Home device"
+        },
+        "profile": {
+          "name": "Profile name"
+        }
+      }
+    },
+    "reset_schedule_default": {
+      "name": "Standardzeitplan des Zuhauses zurücksetzen",
+      "description": "Entfernt die angepasste hausweite Vorlage und stellt den Werkszeitplan wieder her, ohne aktive Raumzeitpläne zu ändern.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Zuhause-Gerät",
+          "description": "Bei nur einem Tado X Zuhause optional; bei mehreren Zuhause-Geräten das gewünschte Tado X Zuhause-Gerät auswählen."
+        },
+        "profile": {
+          "name": "Profilname",
+          "description": "Normal, Alternative, Eco oder Not in use (optionales Suffix default)."
+        }
+      }
+    },
+    "save_schedule_profile_default": {
+      "name": "Save default schedule profile",
+      "description": "Save this room's live schedule as a home-wide default.",
+      "fields": {
+        "entity_id": {
+          "name": "Climate entity"
+        },
+        "profile": {
+          "name": "Profile name"
+        }
+      }
+    },
+    "restore_schedule_profile_default": {
+      "name": "Restore default schedule profile",
+      "description": "Restore a home-wide default schedule to a room.",
+      "fields": {
+        "entity_id": {
+          "name": "Climate entity"
+        },
+        "profile": {
+          "name": "Profile name"
+        }
+      }
+    },
+    "create_schedule_profile": {
+      "name": "Create schedule profile",
+      "description": "Create a home-wide profile class available to every room.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Home device"
+        },
+        "profile": {
+          "name": "New profile name"
+        }
+      }
+    }
+  },
+  "entity": {
+    "climate": {
+      "tado_x": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "home": "Zuhause",
+              "away": "Unterwegs",
+              "auto": "Auto (Geofencing)",
+              "schedule": "Zeitplan"
+            }
+          }
+        }
+      }
+    },
+    "sensor": {
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "humidity": {
+        "name": "Luftfeuchtigkeit"
+      },
+      "heating_power": {
+        "name": "Heizleistung"
+      },
+      "heating_time_today": {
+        "name": "Heizzeit heute"
+      },
+      "next_schedule_change": {
+        "name": "Nächste Zeitplanänderung"
+      },
+      "next_schedule_temperature": {
+        "name": "Nächste Solltemperatur"
+      },
+      "next_schedule_power": {
+        "name": "Nächster Heizstatus"
+      },
+      "battery": {
+        "name": "Batterie",
+        "state": {
+          "normal": "Normal",
+          "low": "Niedrig"
+        }
+      },
+      "device_temperature": {
+        "name": "Gerätetemperatur"
+      },
+      "temperature_offset": {
+        "name": "Temperatur-Offset"
+      },
+      "api_calls_today": {
+        "name": "API-Aufrufe heute"
+      },
+      "api_quota_remaining": {
+        "name": "Verbleibendes API-Kontingent"
+      },
+      "api_quota_limit": {
+        "name": "API-Kontingentgrenze"
+      },
+      "api_usage_percentage": {
+        "name": "API-Nutzung aktuell"
+      },
+      "api_estimated_daily_usage": {
+        "name": "Geschätzte tägliche API-Nutzung"
+      },
+      "api_reset_time": {
+        "name": "API-Rücksetzzeit"
+      },
+      "api_status": {
+        "name": "API-Status",
+        "state": {
+          "OK": "OK",
+          "RATE_LIMITED": "Kontingent erreicht"
+        }
+      },
+      "presence_state": {
+        "name": "Anwesenheit",
+        "state": {
+          "HOME": "Zuhause",
+          "AWAY": "Unterwegs"
+        }
+      },
+      "presence_mode": {
+        "name": "Presence Mode",
+        "state": {
+          "AUTO": "Auto (Geofencing)",
+          "MANUAL": "Manual Override"
+        }
+      },
+      "outdoor_temperature": {
+        "name": "Außentemperatur"
+      },
+      "solar_intensity": {
+        "name": "Sonnenintensität"
+      },
+      "weather_state": {
+        "name": "Wetterlage",
+        "state": {
+          "SUNNY": "Sonnig",
+          "CLOUDY": "Wolkig",
+          "CLOUDY_PARTLY": "Teilweise bewölkt",
+          "CLOUDY_MOSTLY": "Meist bewölkt",
+          "NIGHT_CLEAR": "Klare Nacht",
+          "NIGHT_CLOUDY": "Wolkige Nacht",
+          "RAIN": "Regen",
+          "DRIZZLE": "Nieselregen",
+          "SNOW": "Schnee",
+          "FOGGY": "Nebelig",
+          "THUNDERSTORMS": "Gewitter",
+          "WINDY": "Windig"
+        }
+      },
+      "air_freshness": {
+        "name": "Luftkomfort",
+        "state": {
+          "humid": "Feucht",
+          "comfy": "Angenehm",
+          "dry": "Trocken"
+        }
+      },
+      "comfort_level": {
+        "name": "Komfortniveau",
+        "state": {
+          "cold": "Kalt",
+          "comfy": "Angenehm",
+          "warm": "Warm"
+        }
+      },
+      "home_id": {
+        "name": "Tado-Heim-ID"
+      },
+      "dhw_state": {
+        "name": "Warmwasserstatus"
+      }
+    },
+    "binary_sensor": {
+      "window_open": {
+        "name": "Fenster offen"
+      },
+      "heating": {
+        "name": "Heizen"
+      },
+      "overlay_active": {
+        "name": "Manuelle Steuerung"
+      },
+      "connectivity": {
+        "name": "Konnektivität"
+      },
+      "battery_low": {
+        "name": "Batterie schwach"
+      }
+    },
+    "switch": {
+      "child_lock": {
+        "name": "Kindersicherung"
+      },
+      "open_window": {
+        "name": "Fenster offen"
+      },
+      "flow_temp_auto_adaptation": {
+        "name": "Vorlauftemperatur Auto-Anpassung"
+      }
+    },
+    "number": {
+      "max_flow_temperature": {
+        "name": "Max. Vorlauftemperatur"
+      },
+      "timer_duration": {
+        "name": "Timerdauer"
+      }
+    },
+    "button": {
+      "boost_all": {
+        "name": "Alle auf max. stellen"
+      },
+      "disable_all": {
+        "name": "Alle ausschalten"
+      },
+      "refresh_schedule": {
+        "name": "Refresh Schedule"
+      },
+      "resume_schedules": {
+        "name": "Zeitplan fortsetzen"
+      },
+      "boost_hot_water": {
+        "name": "Warmwasser steigern"
+      },
+      "disable_hot_water": {
+        "name": "Schalten sie heißes wasser aus"
+      },
+      "resume_hot_water_schedule": {
+        "name": "Warmwasserplan wieder aufnehmen"
+      }
+    },
+    "select": {
+      "presence_mode": {
+        "name": "Anwesenheitsmodus",
+        "state": {
+          "home": "Zuhause",
+          "away": "Unterwegs",
+          "auto": "Auto (Geofencing)"
+        }
+      },
+      "dhw_mode": {
+        "name": "Warmwasser-Modus",
+        "state": {
+          "OFF": "Aus",
+          "SCHEDULE": "Zeitplan",
+          "BOOST": "Hochfahren"
+        }
+      },
+      "termination_type": {
+        "name": "Abschaltart",
+        "state": {
+          "TIMER": "Timer",
+          "MANUAL": "Manuell",
+          "NEXT_TIME_BLOCK": "Nächster Zeitblock"
+        }
+      }
+    },
+    "device_tracker": {
+      "mobile_device": {
+        "name": "Mobiles Gerät",
+        "state": {
+          "home": "Zuhause",
+          "away": "Unterwegs",
+          "not_tracking": "Nicht verfolgt",
+          "unknown": "Unbekannt"
+        },
+        "state_attributes": {
+          "geofencing_enabled": {
+            "name": "Geofencing aktiviert"
+          },
+          "at_home": {
+            "name": "Zuhause"
+          },
+          "platform": {
+            "name": "Plattform"
+          },
+          "os_version": {
+            "name": "OS Version"
+          },
+          "model": {
+            "name": "Modell"
+          },
+          "locale": {
+            "name": "Locale"
+          }
+        }
+      }
+    }
+  }
+}

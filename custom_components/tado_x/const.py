@@ -1,0 +1,103 @@
+"""Constants for the Tado X integration."""
+from typing import Final
+
+DOMAIN: Final = "tado_x"
+
+# API URLs
+TADO_AUTH_URL: Final = "https://login.tado.com/oauth2/device_authorize"
+TADO_TOKEN_URL: Final = "https://login.tado.com/oauth2/token"
+TADO_HOPS_API_URL: Final = "https://hops.tado.com"
+TADO_MY_API_URL: Final = "https://my.tado.com/api/v2"
+TADO_EIQ_API_URL: Final = "https://energy-insights.tado.com/api"
+TADO_MINDER_API_URL: Final = "https://minder.tado.com/v1"
+
+# OAuth2 Client ID (public client for device linking)
+TADO_CLIENT_ID: Final = "1bb50063-6b0c-4d11-bd99-387f4a91cc46"
+
+# Config keys
+CONF_HOME_ID: Final = "home_id"
+CONF_HOME_NAME: Final = "home_name"
+CONF_ACCESS_TOKEN: Final = "access_token"
+CONF_REFRESH_TOKEN: Final = "refresh_token"
+CONF_TOKEN_EXPIRY: Final = "token_expiry"
+CONF_API_CALLS_TODAY: Final = "api_calls_today"
+CONF_API_RESET_TIME: Final = "api_reset_time"
+CONF_HAS_AUTO_ASSIST: Final = "has_auto_assist"
+
+# Update intervals (in seconds)
+# Free tier: 100 req/day ÷ 3 req/update = 33 updates max → 45 min interval = 32 updates × 3 = 96 req/day
+SCAN_INTERVAL_FREE_TIER: Final = 2700  # 45 minutes - stays under 100 req/day quota
+SCAN_INTERVAL_AUTO_ASSIST: Final = 30  # 30 seconds - for 20k req/day quota
+DEFAULT_SCAN_INTERVAL: Final = 30  # seconds (legacy, use tier-specific)
+
+# API Rate Limits
+API_QUOTA_FREE_TIER: Final = 100  # requests per day without Auto-Assist
+API_QUOTA_PREMIUM: Final = 20000  # requests per day with Auto-Assist
+API_CALLS_PER_UPDATE: Final = 6  # get_rooms + get_rooms_and_devices + get_home_state + get_weather + get_mobile_devices + get_running_times
+
+# Config keys for options
+CONF_SCAN_INTERVAL: Final = "scan_interval"
+CONF_ENABLE_SCHEDULE_POLLING: Final = "enable_schedule_polling"
+CONF_SCHEDULE_POLL_INTERVAL: Final = "schedule_poll_interval"
+DEFAULT_SCHEDULE_POLL_INTERVAL: Final = 3600  # seconds
+MIN_SCHEDULE_POLL_INTERVAL: Final = 900  # seconds
+
+# Feature toggles for optional API calls
+CONF_ENABLE_WEATHER: Final = "enable_weather"
+CONF_ENABLE_MOBILE_DEVICES: Final = "enable_mobile_devices"
+CONF_ENABLE_AIR_COMFORT: Final = "enable_air_comfort"
+CONF_ENABLE_RUNNING_TIMES: Final = "enable_running_times"
+CONF_ENABLE_FLOW_TEMP: Final = "enable_flow_temp"
+CONF_ENABLE_HOT_WATER: Final = "enable_hot_water"
+
+# Base API calls (required): get_rooms, get_rooms_and_devices, get_home_state
+API_CALLS_BASE: Final = 3
+
+# Device types
+DEVICE_TYPE_VALVE: Final = "VA04"  # Tado X Radiator Valve
+DEVICE_TYPE_WIRELESS_RECEIVER: Final = "TR04"  # Tado X Wireless Receiver
+DEVICE_TYPE_THERMOSTAT: Final = "RU04"  # Tado X Wired Smart Thermostat
+DEVICE_TYPE_BRIDGE: Final = "IB02"  # Tado X Bridge
+DEVICE_TYPE_SENSOR: Final = "SU04"  # Tado X Temperature Sensor
+
+# Default English device names used for both device name and model.
+DEVICE_TYPE_NAMES: Final = {
+    "VA04": "Radiator Valve X",
+    "SU04": "Temperature Sensor X",
+    "TR04": "Wireless Receiver X",
+    "RU04": "Wired Smart Thermostat X",
+    "IB02": "Bridge X",
+}
+
+# Termination types
+TERMINATION_MANUAL: Final = "MANUAL"
+TERMINATION_TIMER: Final = "TIMER"
+TERMINATION_NEXT_TIME_BLOCK: Final = "NEXT_TIME_BLOCK"
+
+# Default timer duration (30 minutes)
+DEFAULT_TIMER_DURATION_MINUTES: Final = 30
+
+# Temperature limits
+MIN_TEMP: Final = 5.0
+MAX_TEMP: Final = 30.0
+TEMP_STEP: Final = 0.5
+
+# Battery states
+BATTERY_STATE_NORMAL: Final = "NORMAL"
+BATTERY_STATE_LOW: Final = "LOW"
+
+# Connection states
+CONNECTION_STATE_CONNECTED: Final = "CONNECTED"
+CONNECTION_STATE_DISCONNECTED: Final = "DISCONNECTED"
+
+# Platforms
+PLATFORMS: Final = ["climate", "sensor", "binary_sensor", "switch", "button", "device_tracker", "select", "number"]
+
+# Feature to entity key mapping for sensor/button platforms
+# This maps feature flags to the corresponding entity keys that should be enabled/disabled based on the flag
+FEATURE_ENTITY_MAP: Final = {
+    "enable_hot_water": ["dhw_state", "dhw_boost_ends", "dhw_next_schedule_change", "dhw_mode", "boost_hot_water", "disable_hot_water", "resume_hot_water_schedule"],
+    "enable_weather": ["outdoor_temperature", "solar_intensity", "weather_state"],
+    "enable_running_times": ["heating_time_today"],
+    "enable_air_comfort": ["air_freshness", "comfort_level"],
+}
