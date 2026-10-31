@@ -29,6 +29,7 @@ This repository is public and can be added to HACS as a custom repository. The o
 4. Open the repository entry in HACS and select **Download**.
 5. Restart Home Assistant.
 6. Go to **Settings → Devices & services → Add integration**, search for **Tado X Enhanced**, and complete authentication and home selection.
+7. Complete the **Configuration** settings as described below, to be consistent with your Auto-Assist subscription. Having this subscription is strongly recommended for optimum use, allowing a frequent Main update interval and allowing Schedule polling. 
 
 This is a **custom repository** installation; inclusion in the default HACS catalogue is not required. Exact HACS menu labels can vary by version.
 
@@ -47,7 +48,7 @@ Carry out the following HACS handover.
 5. **Verify the migration.** Check that the original Tado home entries load, existing climate and other entity IDs remain available, and no duplicate devices appear. Inspect Home Assistant logs. Verify any relevant hot-water and schedule controls before relying on them. For multiple homes, check both homes and room-specific routing.
 6. **Confirm HACS ownership.** Ensure **Tado X Enhanced** is shown as installed in HACS and the original Exabird repository is no longer shown as installed.
 
-**After migration:** All existing homes should be loaded, and all existing devices remain. The number of entities will be increased significantly as Enhanced entities become available. Check the configuration of your installed homes (see below) to ensure that the new schedule checking is consistent with your Auto-Assist subscription limits.
+**After migration:** All existing homes should be loaded, and all existing devices remain. The number of entities will be increased significantly as Enhanced entities become available. Check the configuration of your installed homes (see below) to ensure that the new schedule checking is consistent with your Auto-Assist subscription limits and you have enabled all the required features.
 
 **Important:** Removing downloaded integration files through HACS is different from deleting a Home Assistant integration configuration entry, which can remove entities and integration-managed information. If replacement fails, restore your backup and report the problem with redacted logs.
 
@@ -77,7 +78,7 @@ Each configured Tado home has its own options under **Settings → Devices & ser
 | Flow temperature | Enable supported flow-temperature controls/data. |
 | Hot water | Enable domestic hot-water functionality where supported. |
 
-**API usage matters:** A complete automatic schedule check uses approximately **two API calls per room** (one Home schedule and one Away settings read). For 10 rooms, hourly checks would use approximately **720 requests per day** for this feature alone. Manual profile operations and the **Refresh Schedule** button remain available when automatic schedule checking is disabled.
+**API usage matters:** A complete automatic schedule check uses approximately **two API calls per room** (one Home schedule and one Away settings read). For 10 rooms, hourly checks would use approximately **480 requests per day** for this feature alone. Manual profile operations and the **Refresh Schedule** button remain available when automatic schedule checking is disabled.
 
 ## Devices and entities
 
