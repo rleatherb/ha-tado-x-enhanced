@@ -233,6 +233,8 @@ class TadoXDhwModeSelect(CoordinatorEntity[TadoXDataUpdateCoordinator], SelectEn
 
         if data.dhw_state in ("SCHEDULE_ON", "SCHEDULE_OFF", "AWAY_ON", "AWAY_OFF"):
             return DHW_SCHEDULE
+        if data.dhw_state in ("HOLIDAY_MODE_OFF", "HOLIDAY_MODE_ON"):
+            return DHW_OFF if data.dhw_state == "HOLIDAY_MODE_OFF" else DHW_SCHEDULE
         if data.dhw_state in DHW_OPTIONS:
             return data.dhw_state
         return None

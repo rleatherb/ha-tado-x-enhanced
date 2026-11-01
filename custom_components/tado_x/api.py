@@ -992,10 +992,11 @@ class TadoXApi:
         if not self._home_id:
             raise TadoXApiError("Home ID not set")
 
-        try:
-            current = await self.get_holiday_mode()
-        except TadoXApiError:
-            current = {}
+        # Do not PATCH an empty configuration if the initial GET fails:
+        # the request must preserve per-room and hot-water holiday settings.
+        current = await self.get_holiday_mode()
+        if not isinstance(current.get("roomSettings"), dict):
+            raise TadoXApiError("Holiday settings incomplete; refusing unsafe update")
 
         body = dict(current)
         body["enabled"] = enabled

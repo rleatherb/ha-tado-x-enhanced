@@ -84,6 +84,7 @@ async def async_setup_entry(
     for room_id in coordinator.data.rooms:
         entities.append(TadoXScheduleRefreshButton(coordinator, room_id))
 
+    entities.append(TadoXHolidayRefreshButton(coordinator))
     async_add_entities(entities)
 
     # Set initial disabled_by state based on feature flags
@@ -214,3 +215,25 @@ class TadoXScheduleRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinator], 
             # Poll the current room state immediately so next-change sensors
             # and climate attributes reflect Tado's latest configuration.
             await self.coordinator.async_request_refresh()
+
+
+class TadoXHolidayRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
+    """Request a targeted home holiday mode refresh."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Refresh Holiday Mode"
+    _attr_translation_key = "refresh_holiday_mode"
+    _attr_icon = "mdi:refresh"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.home_id}_refresh_holiday_mode"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(identifiers={(DOMAIN, str(self.coordinator.home_id))})
+
+    async def async_press(self) -> None:
+        await self.coordinator.holiday_mode_manager.refresh()
+        await self.coordinator.async_request_refresh()

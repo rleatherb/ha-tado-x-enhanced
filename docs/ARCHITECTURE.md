@@ -267,3 +267,7 @@ Before accepting a code change:
 This guide was drafted by inspecting the supplied **`Latest complete source.zip`** release candidate, including the integration's Python modules, manifest and action definitions. The earlier v34 guide was used only as a historical cross-check; current implementation details, particularly the 19 actions, custom profile classes, default actions and factory Away temperatures, come from the current source. No live Home Assistant instance or Tado API was exercised in preparing this document.
 
 Tado X Enhanced is an independently maintained MIT-licensed derivative of Exabird's original integration. Retain the original and subsequent copyright notices in the repository's [LICENSE](../LICENSE).
+
+
+### DEV-001 Holiday state manager
+`holiday_mode.py` maintains per-coordinator holiday data, polls independently of room schedule comparison, schedules local callbacks for start/end transitions, and notifies home-level entities. A targeted refresh follows action writes and button presses.

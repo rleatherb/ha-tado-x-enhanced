@@ -87,3 +87,13 @@ This integration is a development of the original [Tado X integration by exabird
 - Some functionality depends on the connected Tado devices, the account's subscription, and API responses. Cloud API quotas apply.
 - API reset-time detection is observational rather than an exact server-announced reset timestamp. Estimated daily usage may exceed 100% and may initially be unavailable.
 
+
+
+## Unreleased — DEV-001 (development build)
+- Added home-level Holiday Mode switch, status and timestamp sensors, and refresh button.
+- Added independent home-level holiday polling and start/end event callbacks.
+- Switch-on preserves valid unexpired periods or starts a fresh seven-day holiday immediately.
+- Holiday API updates now require a successful read of existing room settings.
+- Holiday action writes refresh the holiday entity cache.
+- Recognise `HOLIDAY_MODE_OFF` and `HOLIDAY_MODE_ON` in hot-water state and map these to Off / Schedule in the mode selector; refresh hot water after holiday switching, manual refresh and scheduled boundaries.
+- Simplified Holiday Start and Holiday End to single absolute local date/time text sensors, removed duplicate (Local) entities, and provided datetime selectors for both action dates.

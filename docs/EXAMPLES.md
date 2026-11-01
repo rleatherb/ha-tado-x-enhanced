@@ -144,3 +144,7 @@ The response includes `profiles`, `home_defaults`, `current`, `status` and `matc
 - Be aware that schedule writes and profile restores change **live Tado settings**.
 - Monitor API quota sensors; repeated polling or bulk changes consume requests.
 - Test with a noncritical room first and record its current settings.
+
+### Holiday dates in absolute local time
+
+Add the home-level `Holiday Start` and `Holiday End` sensors to an Entities card. They display dates such as `01 Nov 2026, 07:00`, rather than relative timestamps. For timestamp-based automations, use each sensor’s `utc_datetime` attribute.

@@ -341,7 +341,7 @@ HOME_SENSORS: tuple[TadoXHomeSensorEntityDescription, ...] = (
         translation_key="dhw_state",
         icon="mdi:water-boiler",
         device_class=SensorDeviceClass.ENUM,
-        options=["OFF", "SCHEDULE_OFF", "SCHEDULE_ON", "BOOST", "AWAY_OFF", "AWAY_ON"],
+        options=["OFF", "SCHEDULE_OFF", "SCHEDULE_ON", "BOOST", "AWAY_OFF", "AWAY_ON", "HOLIDAY_MODE_OFF", "HOLIDAY_MODE_ON"],
         value_fn=_get_domestic_hot_water_state,
     ),
     TadoXHomeSensorEntityDescription(
@@ -432,6 +432,9 @@ async def async_setup_entry(
     coordinator: TadoXDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     entities: list[SensorEntity] = []
+
+    for kind in ("status", "start", "end"):
+        entities.append(TadoXHolidaySensor(coordinator, kind))
 
     # Add home-level sensors (API monitoring)
     for description in HOME_SENSORS:
@@ -785,3 +788,55 @@ class TadoXAirComfortSensor(CoordinatorEntity[TadoXDataUpdateCoordinator], Senso
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         self.async_write_ha_state()
+
+
+class TadoXHolidaySensor(CoordinatorEntity[TadoXDataUpdateCoordinator], SensorEntity):
+    """Home-level holiday state and dates."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, kind: str):
+        super().__init__(coordinator)
+        self._kind = kind
+        self._attr_unique_id = f"{coordinator.home_id}_holiday_{kind}"
+        self._attr_translation_key = f"holiday_{kind}"
+        self._attr_name = {"status": "Holiday Status", "start": "Holiday Start", "end": "Holiday End"}[kind]
+        self._attr_icon = "mdi:beach" if kind == "status" else "mdi:calendar-clock"
+        if kind == "status":
+            self._attr_device_class = SensorDeviceClass.ENUM
+            self._attr_options = ["off", "scheduled", "active", "ended"]
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(identifiers={(DOMAIN, str(self.coordinator.home_id))})
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.holiday_mode_manager.data is not None
+
+    @property
+    def native_value(self):
+        manager = self.coordinator.holiday_mode_manager
+        if self._kind == "status":
+            return manager.status
+        from .holiday_mode import parse_time
+        if not manager.data:
+            return None
+        value = parse_time(manager.data.get("startDate" if self._kind.startswith("start") else "endDate"))
+        return dt_util.as_local(value).strftime("%d %b %Y, %H:%M") if value else None
+
+    @property
+    def extra_state_attributes(self):
+        if self._kind in ("start", "end"):
+            from .holiday_mode import parse_time
+            data = self.coordinator.holiday_mode_manager.data or {}
+            raw = data.get("startDate" if self._kind == "start" else "endDate")
+            value = parse_time(raw)
+            return {"utc_datetime": value.isoformat() if value else None} if value else None
+        if self._kind != "status":
+            return None
+        data = self.coordinator.holiday_mode_manager.data
+        if not data:
+            return None
+        return {"enabled": data.get("enabled"), "active": data.get("active"),
+                "room_settings": data.get("roomSettings"), "hot_water_settings": data.get("hotWaterSettings")}

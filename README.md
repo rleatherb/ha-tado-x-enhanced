@@ -174,3 +174,11 @@ The MIT licence permits use, modification and redistribution subject to retentio
 
 Project maintenance and GitHub code ownership: [@rleatherb](https://github.com/rleatherb).
 
+
+
+### Holiday Mode (DEV-001 development)
+The Tado X Home device has Holiday Mode, Holiday Status, Holiday Start, Holiday End and Refresh Holiday Mode entities. An expired holiday switched on through Home Assistant is rescheduled to start immediately for seven days. Explicit dates in `tado_x.set_holiday_mode` remain unchanged. Holiday state refreshes independently at the configured schedule polling interval and at holiday boundaries.
+
+### DEV-001 holiday date display and hot-water states (development)
+
+**Holiday Start** and **Holiday End** each display an absolute local date and time (for example `02 Dec 2026, 12:00`) as a single text sensor; the UTC timestamp is available in the `utc_datetime` attribute. These development entities are no longer timestamp-class sensors. During active holidays, `HOLIDAY_MODE_OFF` is recognised as a hot-water state and shown as Off by the Hot Water Mode selector. Holiday changes refresh hot-water state promptly.

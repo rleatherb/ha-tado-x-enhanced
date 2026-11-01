@@ -179,3 +179,13 @@ In addition to standard climate properties (`hvac_modes`, `hvac_action`, `min_te
 ## Scope and compatibility
 
 Room entity unique IDs and room actions are home-scoped; the same numeric room ID may occur in different Tado homes. The precise entity ID assigned by Home Assistant can vary for existing installations and user-renamed entities. Device and entity availability depends on the configured options, hardware, subscription and Tado API responses. For action parameters, see [ACTIONS.md](ACTIONS.md).
+
+
+## Holiday Mode (development, DEV-001)
+The Tado X Home device provides a Holiday Mode switch, Holiday Status sensor (Off, Scheduled, Active, Ended), Holiday Start and Holiday End local date/time text sensors, and Refresh Holiday Mode button. The switch enables any unexpired period without changing its dates; expired periods are replaced by seven days beginning immediately. Room and hot-water holiday settings are preserved. The status sensor includes stored settings as attributes. Holiday refresh runs at the configured schedule-check interval, independently of per-room profile polling, and at scheduled boundaries.
+
+### Holiday date presentation (DEV-001)
+
+**Holiday Start** and **Holiday End** are the only two date sensors. They display absolute local date/time text (for example `01 Nov 2026, 07:00`) instead of relative dates. Their `utc_datetime` attributes retain ISO-8601 timestamps for use in automations. The former `(Local)` duplicate entities have been removed.
+
+When Holiday Mode is active, the hot-water API may report `HOLIDAY_MODE_OFF`. **Hot Water State** retains this diagnostic API value; **Hot Water Mode** displays Off. Holiday switches and refreshes trigger an additional home coordinator refresh to update the hot-water entities.

@@ -40,6 +40,7 @@ from .const import (
 )
 from .coordinator import TadoXDataUpdateCoordinator
 from .schedule_profiles import ProfileManager, DEFAULT_PROFILES, base_default_name
+from .holiday_mode import HolidayModeManager
 from .const import CONF_ENABLE_SCHEDULE_POLLING, CONF_SCHEDULE_POLL_INTERVAL, DEFAULT_SCHEDULE_POLL_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
@@ -405,6 +406,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Only perform automatic startup comparison when periodic checks are enabled.
     if profile_manager.poll_enabled:
         entry.async_create_background_task(hass, profile_manager.poll(), "Tado X initial schedule profile comparison")
+
+    holiday_manager = HolidayModeManager(
+        hass, coordinator,
+        entry.data.get(CONF_SCHEDULE_POLL_INTERVAL, DEFAULT_SCHEDULE_POLL_INTERVAL),
+    )
+    coordinator.holiday_mode_manager = holiday_manager
+    await holiday_manager.start()
 
     # Register services
     #
@@ -841,7 +849,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """Return the current holiday mode settings."""
         service_coordinator = get_home_coordinator(call)
         try:
-            return await service_coordinator.api.get_holiday_mode()
+            await service_coordinator.holiday_mode_manager.refresh()
+            return service_coordinator.holiday_mode_manager.data
         except TadoXApiError as err:
             raise HomeAssistantError(f"Failed to get holiday mode: {err}") from err
 
@@ -854,6 +863,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 start_date=call.data.get(ATTR_START_DATE),
                 end_date=call.data.get(ATTR_END_DATE),
             )
+            await service_coordinator.holiday_mode_manager.refresh()
             await service_coordinator.async_request_refresh()
             _LOGGER.info("Holiday mode set to %s", call.data[ATTR_ENABLED])
         except TadoXApiError as err:
@@ -952,6 +962,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         coordinator = hass.data[DOMAIN].pop(entry.entry_id)
+        if hasattr(coordinator, "holiday_mode_manager"):
+            coordinator.holiday_mode_manager.stop()
         if hasattr(coordinator, "schedule_profile_manager"):
             coordinator.schedule_profile_manager.stop()
 

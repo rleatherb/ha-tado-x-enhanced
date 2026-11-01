@@ -283,3 +283,7 @@ The room device provides **Restore schedule profile**, **Save schedule profile**
 Room-specific actions require a room `entity_id` (a Tado X climate entity). Home-wide actions (`create_schedule_profile`, `delete_schedule_profile`, `reset_schedule_default`) accept an optional **Tado X Home** `device_id`; supply it when multiple homes are configured. Profile names are entered as free text and must already exist before saving or restoring. The four built-in names cannot be deleted. `reset_schedule_default` accepts only a built-in profile name.
 
 The room profile's current selection can display **Custom** when its live Home/Away schedule matches no stored effective profile. It can also be unavailable if schedule reads fail; **Custom** is not a profile that can be restored. For details of validation and partial-write recovery, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+
+### Holiday Mode interaction (DEV-001)
+Next Schedule Change, Power and Temperature continue to describe the underlying normal schedule; active Holiday Mode may override it. The Holiday Status sensor identifies the current holiday period.

@@ -92,7 +92,7 @@ set_eiq_tariff:
       required: false
       example: "2026-01-01"
       selector:
-        text:
+        datetime:
     end_date:
       name: End date
       description: End date for the tariff (YYYY-MM-DD format, leave empty for ongoing tariff)
@@ -330,18 +330,18 @@ set_holiday_mode:
         boolean:
     start_date:
       name: Start date
-      description: ISO-8601 start date-time (e.g. 2026-12-20T08:00:00Z). Optional.
+      description: Holiday start date and time. Optional; explicit ISO-8601 timestamps remain accepted in YAML.
       required: false
       example: "2026-12-20T08:00:00Z"
       selector:
-        text:
+        datetime:
     end_date:
       name: End date
-      description: ISO-8601 end date-time (e.g. 2027-01-05T20:00:00Z). Optional.
+      description: Holiday end date and time. Optional; explicit ISO-8601 timestamps remain accepted in YAML.
       required: false
       example: "2027-01-05T20:00:00Z"
       selector:
-        text:
+        datetime:
 
 save_schedule_profile:
   name: Save schedule profile

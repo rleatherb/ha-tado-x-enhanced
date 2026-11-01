@@ -486,6 +486,21 @@
       },
       "dhw_state": {
         "name": "Estado del agua caliente"
+      },
+      "holiday_status": {
+        "name": "Estado de vacaciones",
+        "state": {
+          "off": "Off",
+          "scheduled": "Scheduled",
+          "active": "Active",
+          "ended": "Ended"
+        }
+      },
+      "holiday_start": {
+        "name": "Inicio de vacaciones"
+      },
+      "holiday_end": {
+        "name": "Fin de vacaciones"
       }
     },
     "binary_sensor": {
@@ -514,6 +529,9 @@
       },
       "flow_temp_auto_adaptation": {
         "name": "Adaptación automática de temperatura de impulsión"
+      },
+      "holiday_mode": {
+        "name": "Modo vacaciones"
       }
     },
     "number": {
@@ -545,6 +563,9 @@
       },
       "resume_hot_water_schedule": {
         "name": "Reanudar programación de agua caliente"
+      },
+      "refresh_holiday_mode": {
+        "name": "Actualizar modo vacaciones"
       }
     },
     "select": {

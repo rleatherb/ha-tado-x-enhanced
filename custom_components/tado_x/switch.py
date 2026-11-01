@@ -40,6 +40,7 @@ async def async_setup_entry(
     if coordinator.data and coordinator.data.has_flow_temp_control:
         entities.append(TadoXFlowTempAutoAdaptationSwitch(coordinator))
 
+    entities.append(TadoXHolidayModeSwitch(coordinator))
     async_add_entities(entities)
 
 
@@ -264,3 +265,35 @@ class TadoXFlowTempAutoAdaptationSwitch(CoordinatorEntity[TadoXDataUpdateCoordin
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         self.async_write_ha_state()
+
+
+class TadoXHolidayModeSwitch(CoordinatorEntity[TadoXDataUpdateCoordinator], SwitchEntity):
+    """Home-level holiday enable switch."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Holiday Mode"
+    _attr_translation_key = "holiday_mode"
+    _attr_icon = "mdi:beach"
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.home_id}_holiday_mode"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(identifiers={(DOMAIN, str(self.coordinator.home_id))})
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.holiday_mode_manager.data is not None
+
+    @property
+    def is_on(self) -> bool | None:
+        data = self.coordinator.holiday_mode_manager.data
+        return data.get("enabled") if data else None
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self.coordinator.holiday_mode_manager.set_enabled(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.coordinator.holiday_mode_manager.set_enabled(False)

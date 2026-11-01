@@ -64,3 +64,7 @@ The built-in names are **Normal**, **Alternative**, **Eco** and **Not in use**. 
 ## API and testing notes
 
 Read and write operations require Tado cloud access and are subject to API quotas. Some actions require hardware, subscription or account capabilities. Schedule restoration may involve multiple remote writes; it is not an atomic transaction. See [SCHEDULES.md](SCHEDULES.md) for workflows and [ARCHITECTURE.md](ARCHITECTURE.md) for validation and recovery behaviour.
+
+
+### Holiday Mode and the home switch (DEV-001)
+`set_holiday_mode` continues to accept explicit ISO-8601 timestamps, including past start dates. The Holiday Mode switch provides automatic seven-day rescheduling only when the stored period has expired.

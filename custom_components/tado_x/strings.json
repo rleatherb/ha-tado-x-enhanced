@@ -486,6 +486,21 @@
       },
       "dhw_state": {
         "name": "Hot Water State"
+      },
+      "holiday_status": {
+        "name": "Holiday Status",
+        "state": {
+          "off": "Off",
+          "scheduled": "Scheduled",
+          "active": "Active",
+          "ended": "Ended"
+        }
+      },
+      "holiday_start": {
+        "name": "Holiday Start"
+      },
+      "holiday_end": {
+        "name": "Holiday End"
       }
     },
     "binary_sensor": {
@@ -514,6 +529,9 @@
       },
       "flow_temp_auto_adaptation": {
         "name": "Flow Temp Auto-Adaptation"
+      },
+      "holiday_mode": {
+        "name": "Holiday Mode"
       }
     },
     "number": {
@@ -545,6 +563,9 @@
       },
       "resume_hot_water_schedule": {
         "name": "Resume Hot Water Schedule"
+      },
+      "refresh_holiday_mode": {
+        "name": "Refresh Holiday Mode"
       }
     },
     "select": {
