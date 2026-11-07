@@ -64,6 +64,9 @@ class TadoXApi:
         self._home_id: int | None = None
         self._has_auto_assist = has_auto_assist
         self._on_token_refresh = on_token_refresh
+        # Tado rotates the refresh token on every use, so two concurrent
+        # refreshes make the second one fail (400 refresh_token_not_found).
+        self._token_lock = asyncio.Lock()
         self._get_room_control_defaults = None
 
         # The server's daily quota counter, not a fixed UTC clock, determines
@@ -345,9 +348,28 @@ class TadoXApi:
         if not self._access_token:
             raise TadoXAuthError("Not authenticated")
 
-        # Refresh if token expires in less than 60 seconds
-        if self._token_expiry and datetime.now() >= self._token_expiry - timedelta(seconds=60):
-            await self.refresh_access_token()
+        if not self._token_is_stale():
+            return
+
+        # Every request passes through here, so a scheduled poll and several
+        # service calls can arrive together. Let one caller refresh; whoever
+        # waited finds the new token and leaves it alone.
+        async with self._token_lock:
+            if self._token_is_stale():
+                await self.refresh_access_token()
+
+    def _token_is_stale(self) -> bool:
+        """Return whether the access token expires in less than 60 seconds."""
+        return bool(
+            self._token_expiry
+            and datetime.now() >= self._token_expiry - timedelta(seconds=60)
+        )
+
+    async def _refresh_after_401(self, rejected_token: str | None) -> None:
+        """Refresh once after a 401, unless another caller already did."""
+        async with self._token_lock:
+            if self._access_token == rejected_token:
+                await self.refresh_access_token()
 
     async def _request(
         self,
@@ -361,8 +383,9 @@ class TadoXApi:
         # Track API call
         self._api_calls_today += 1
 
+        sent_token = self._access_token
         headers = {
-            "Authorization": f"Bearer {self._access_token}",
+            "Authorization": f"Bearer {sent_token}",
             "Content-Type": "application/json",
         }
 
@@ -377,8 +400,8 @@ class TadoXApi:
                 self._parse_rate_limit_headers(response.headers)
 
                 if response.status == 401:
-                    # Try to refresh token and retry
-                    await self.refresh_access_token()
+                    # Refresh the token (once for all concurrent callers) and retry
+                    await self._refresh_after_401(sent_token)
                     headers["Authorization"] = f"Bearer {self._access_token}"
                     async with self._session.request(
                         method,
