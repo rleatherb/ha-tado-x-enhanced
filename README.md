@@ -184,7 +184,7 @@ Project maintenance and GitHub code ownership: [@rleatherb](https://github.com/r
 
 ### Holiday Mode
 
-The Tado X Home device has Holiday Mode, Holiday Status, Holiday Start, Holiday End and Refresh Holiday Mode entities. An expired holiday switched on through Home Assistant is rescheduled to start immediately for seven days. Explicit dates in `tado_x.set_holiday_mode` remain unchanged. Holiday state refreshes independently at the configured schedule polling interval and at holiday boundaries.
+The Tado X Home device has Holiday Mode, Holiday Status, Holiday Start, Holiday End and Refresh Holiday Mode entities. An expired holiday switched on through Home Assistant is rescheduled to start immediately for seven days. Explicit dates in `tado_x.set_holiday_mode` remain unchanged. Holiday Mode is polled at the configured supplementary interval when automatic Holiday Mode checking is enabled. This uses the main polling interval multiplied by the supplementary polling multiplier (default 5×), independently of room schedule checking. Initial, manual, action-triggered and holiday-boundary refreshes remain available regardless of the periodic polling setting.
 
 ### Holiday date display and hot-water states
 

@@ -54,7 +54,11 @@ Home Assistant config entry (one selected Tado home)
   └─ async_setup_entry (__init__.py)
       ├─ TadoXApi (api.py): auth, requests, quota observations
       ├─ TadoXDataUpdateCoordinator (coordinator.py)
-      │   └─ TadoXData: rooms, devices, presence, optional datasets
+      │   ├─ TadoXData: rooms, devices, presence, optional datasets
+      │   └─ supplementary Holiday Mode checks (when enabled)
+      ├─ HolidayModeManager (holiday_mode.py)
+      │   ├─ home-scoped snapshot and initial/manual/action reads
+      │   └─ holiday start/end boundary callbacks
       ├─ ProfileManager (schedule_profiles.py)
       │   ├─ home-specific persistent profile store
       │   └─ optional independent schedule comparison timer
@@ -107,7 +111,7 @@ Optional feature flags control additional data retrieval and entity availability
 - Flow-temperature optimisation
 - Domestic hot water
 
-These are per-home options. Defaults are influenced by the configured Auto-Assist status. Enabling additional datasets may increase API consumption. Mobile Devices and Domestic Hot Water use the main coordinator interval. Weather, Air Comfort, Heating Running Times, Flow Temperature and Holiday Mode use a per-home supplementary multiplier (1×, 2×, 5× or 10× the main interval, default 5×). Supplementary datasets are cached between eligible checks. Holiday Mode retains a separate manager for manual reads and scheduled boundary callbacks, but no independent periodic timer. Flow Temperature actions invalidate the cache to read back the changed settings promptly. The `tado_x.set_polling_options` action and the options flow use the same live configuration update path; the action resolves an optional Tado X Home device, defaulting to the only configured home when unambiguous.
+These are per-home options. Defaults are influenced by the configured Auto-Assist status. Enabling additional datasets may increase API consumption. Mobile Devices and Domestic Hot Water use the main coordinator interval. Weather, Air Comfort, Heating Running Times, Flow Temperature and Holiday Mode use a per-home supplementary multiplier (1×, 2×, 5× or 10× the main interval, default 5×). Supplementary datasets are cached between eligible checks. Holiday Mode retains a separate manager for initial/manual/action reads and scheduled boundary callbacks, but no independent periodic timer. Its independent enable checkbox controls participation in supplementary polling; disabling it does not disable initial, manual, action-triggered or boundary reads. Flow Temperature actions invalidate the cache to read back the changed settings promptly. The `tado_x.set_polling_options` action and the options flow use the same live configuration update path; the action resolves an optional Tado X Home device, defaulting to the only configured home when unambiguous.
 
 **Schedule polling is separate from main coordinator polling.** The profile manager checks Home and Away configurations at an independently configured interval: 900–86,400 seconds, default 3,600 seconds. Automatic schedule checking defaults on for Auto-Assist configurations and off otherwise, subject to saved options. A full comparison ordinarily requires approximately **two schedule API requests per room**. Manual schedule refresh and profile actions remain available when automatic checking is disabled.
 
@@ -142,12 +146,13 @@ Away configuration is stored separately from the weekly Home schedule and includ
 
 ### 8.1 Registered actions
 
-The source defines **19** `tado_x` actions:
+The source defines **20** `tado_x` actions:
 
 | Area | Actions |
 |---|---|
 | Existing/extended controls | `set_temperature_offset`, `add_meter_reading`, `set_eiq_tariff`, `set_climate_timer` |
 | Home/Away schedules | `get_schedule`, `set_schedule`, `get_away_schedule`, `set_away_schedule` |
+| Polling configuration | `set_polling_options` |
 | Historical/holiday data | `get_day_report`, `get_holiday_mode`, `set_holiday_mode` |
 | Profiles | `save_schedule_profile`, `restore_schedule_profile`, `list_schedule_profiles`, `delete_schedule_profile`, `create_schedule_profile`, `save_schedule_profile_default`, `restore_schedule_profile_default`, `reset_schedule_default` |
 
@@ -270,7 +275,9 @@ Tado X Enhanced is an independently maintained MIT-licensed derivative of Exabir
 
 ### 15.1 Holiday Mode state management
 
-`holiday_mode.py` maintains a home-scoped Holiday Mode snapshot, polls independently of room schedule comparison, schedules callbacks at holiday start and end boundaries, and notifies home-level entities. Targeted refreshes follow Holiday Mode actions and button presses. The Holiday Mode status is derived from the enabled flag and the configured date interval.
+`holiday_mode.py` implements `HolidayModeManager`, which maintains a home-scoped snapshot of Holiday Mode settings and status. An initial API read is performed during integration setup. Subsequent automatic checks are performed by `TadoXDataUpdateCoordinator` at the supplementary polling cadence when Holiday Mode polling is enabled. The manager does not maintain a separate periodic polling timer. Its enable setting is independent of room schedule checking.
+
+The manager also schedules callbacks at future holiday start and end boundaries. These callbacks update the displayed state and request a fresh Holiday Mode read and coordinator refresh. Manual refreshes and Holiday Mode actions bypass supplementary polling throttling. After a successful Holiday Mode read, the cached snapshot and boundary callbacks are updated, and relevant entity listeners are notified as appropriate. The Holiday Mode status is derived from the enabled flag and the configured date interval.
 
 The `tado_x.set_holiday_mode` action accepts optional start and end dates, converts supported Home Assistant local date/time and ISO-8601 input to UTC, and requires each supplied time to be on a 30-minute boundary. Enabling or disabling without date changes uses a minimal request. Date changes use a targeted update and server read-back verification so that an ignored update is reported as an error rather than silently treated as successful. See [ACTIONS.md](ACTIONS.md) for action syntax.
 

@@ -183,7 +183,7 @@ Room entity unique IDs and room actions are home-scoped; the same numeric room I
 
 
 ## Holiday Mode
-The Tado X Home device provides a Holiday Mode switch, Holiday Status sensor (Off, Scheduled, Active, Ended), Holiday Start and Holiday End timestamp sensors, and Refresh Holiday Mode button. The switch enables any unexpired period without changing its dates; expired periods are replaced by seven days beginning immediately. Room and hot-water holiday settings are preserved. The status sensor includes stored settings as attributes. Holiday refresh runs at the configured schedule-check interval, independently of per-room profile polling, and at scheduled boundaries.
+The Tado X Home device provides a Holiday Mode switch, Holiday Status sensor (Off, Scheduled, Active, Ended), Holiday Start and Holiday End timestamp sensors, and Refresh Holiday Mode button. The switch enables any unexpired period without changing its dates; expired periods are replaced by seven days beginning immediately. Room and hot-water holiday settings are preserved. The status sensor includes stored settings as attributes. Automatic Holiday Mode polling is enabled or disabled independently for each Tado home. When enabled, periodic refreshes follow the coordinator’s supplementary polling cadence, determined by the main update interval multiplied by the configured supplementary multiplier (1×, 2×, 5× or 10×; default 5×). Holiday Mode is also refreshed on initial setup, through manual refreshes and actions, and at scheduled holiday start/end boundaries. These event-driven refreshes do not wait for the next supplementary poll.
 
 ### Holiday date presentation
 

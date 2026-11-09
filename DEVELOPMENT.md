@@ -1,23 +1,34 @@
-> **Release preparation (9 November 2026):** DEV-004 is the functional baseline for the proposed v1.2.0 release candidate. Historical notes below describe interim development decisions and are not necessarily the final defaults. Latest published version remains v1.1.2 until release approval.
+> **Development history:** DEV-001 through DEV-004 records below preserve intermediate decisions and testing status as recorded at the time. Statements identifying earlier builds as unpublished, provisional or awaiting testing are historical, not the status of the published v1.2.0 release. The final implementation and release evidence are recorded below and in `CHANGELOG.md`.
 
 # Tado X Enhanced — Development Status
 
 **Repository:** https://github.com/rleatherb/ha-tado-x-enhanced  
 **Integration domain:** `tado_x`  
-**Current release:** `v1.1.2` (8 November 2026)  
+**Current published release:** `v1.2.0` (9 November 2026)  
+**Stable branch:** `main`  
+**Development branch:** `develop`  
+**Current development cycle:** DEV-005  
+**Next release:** To be determined  
 **DEV-003 integration:** PR #9, commit `1ad377480c674e718f413d29bdc6416d63ae7f78`  
-**Status:** DEV-003 incorporated in v1.1.2; future work is tracked against the current accepted source.  
-**Updated:** 8 November 2026
+**Updated:** 9 November 2026
 
 ## Current development position
 
-Version `v1.1.2` includes DEV-003 authentication reliability improvements alongside the previously released Holiday Mode functionality. The DEV-002 Holiday Mode hotfix followed DEV-001's introduction of home-level Holiday Mode controls, status/date sensors, manual refresh, boundary handling, local date presentation and holiday hot-water state mapping. The hotfix restored local date/time selectors and corrected date-bearing requests by sending only writable settings, preserving an omitted boundary and verifying dates through a server read-back.
+Version `v1.2.0` was published on 9 November 2026 following DEV-004. It includes configurable main, supplementary and independent schedule polling; the 5× default supplementary multiplier; live configuration through the options dialogue and `tado_x.set_polling_options`; a rolling observed daily API usage estimate; and a complementary theoretical daily API usage projection. The earlier DEV-003 authentication improvements and existing climate, timer, hot-water, schedule-profile, history, Holiday Mode and multi-home functionality remain in place.
 
-The maintainer confirmed that date-bearing Holiday Mode changes work against the live Tado API. This is not evidence of a complete `v1.1.1` regression run on both homes. The existing schedules, timers, historical data, API monitoring and multi-home behaviour are intended to remain unchanged; relevant live regression tests should be performed for future functional changes.
+Following publication, `main` was merged back into `develop` and pushed. Both branches were confirmed synchronised at the start of DEV-005. The supplied complete source and development archives are identical to the approved v1.2.0 release-candidate contents.
 
-Holiday Mode cancellation can leave domestic hot water `OFF` rather than returning to Schedule, including when cancelled through the Tado app. This appears to be Tado-side behaviour, but its cause has not been conclusively established. The integration reports the API state and does not automatically restore Schedule. The README documents an optional Home Assistant automation to restore it.
+The maintainer reported seven successful live Home Assistant regression checks covering climate, timers, hot water, schedule profiles, historical data, multi-home isolation and Holiday Mode boundary handling. Polling settings, persistence and API monitoring were also tested live. Flow Temperature was unavailable on the test homes. Compatibility with every earlier installation or Home Assistant version has not been established. Static checks and standalone tests must not be represented as live Tado API verification.
 
-Temporary DEV-002 diagnostic logging was removed. Toggle-only Holiday Mode changes retain a minimal `enabled` request; date-bearing changes use filtered writable fields and read-back verification. Holiday Mode polling cadence was not changed. A potential duplicate settings read remains an optional future API-quota review item, not an implemented optimisation.
+DEV-005 begins with documentation-only reconciliation of the published implementation. No functional code change or new release version is authorised by this work package.
+
+## v1.2.0 release record
+
+Published 9 November 2026 after completion of DEV-004. The release includes 20 registered actions, coordinator-driven supplementary Holiday Mode polling (rather than an independent Holiday Mode periodic timer), the 5× default multiplier, and observed and theoretical daily API usage estimates. The published v1.2.0 tag must remain unchanged. Refer to `CHANGELOG.md` for the public release record and its validation limitations.
+
+## DEV-005 — Documentation reconciliation (9 November 2026)
+
+The v1.2.0 source was reviewed before editing. This documentation-only package corrects the current development status in this file, the registered action count and `set_polling_options` inventory in `docs/ARCHITECTURE.md`, and outdated Holiday Mode polling descriptions in `docs/ENTITIES.md`, `README.md` and the architecture lifecycle section. The architecture diagram also identifies the Holiday Mode manager and its coordinator-driven polling/boundary callbacks. Public documentation was reviewed for contradictory descriptions. No integration code, manifest, translations, action schemas, API requests, entity identities or stored settings were changed. Static validation results are reported with the accompanying DEV-005 package; no additional live Home Assistant test is claimed.
 
 ## Next-cycle verification priorities
 
@@ -27,7 +38,7 @@ Temporary DEV-002 diagnostic logging was removed. Toggle-only Holiday Mode chang
 4. Check translations, Home Assistant action selectors and labels after user-facing changes.
 5. Measure or assess additional Tado API calls before introducing new polling or verification requests.
 
-These are ongoing development verification priorities, not claims that all scenarios were tested for `v1.1.2`.
+These are ongoing development verification priorities, not claims that all scenarios were tested for `v1.2.0`.
 
 ## Development rules
 
