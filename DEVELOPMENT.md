@@ -1,26 +1,39 @@
-> **Development history:** DEV-001 through DEV-004 records below preserve intermediate decisions and testing status as recorded at the time. Statements identifying earlier builds as unpublished, provisional or awaiting testing are historical, not the status of the published v1.2.0 release. The final implementation and release evidence are recorded below and in `CHANGELOG.md`.
+> **Development history:** DEV-001 through DEV-005 records below preserve intermediate decisions, superseded designs and testing status as recorded at the time. Earlier references to unpublished builds, release candidates or pending testing are historical and do not describe the published v1.3.0 release. Refer to the release records and `CHANGELOG.md` for final published behaviour and validation evidence.
 
 # Tado X Enhanced — Development Status
 
 **Repository:** https://github.com/rleatherb/ha-tado-x-enhanced  
 **Integration domain:** `tado_x`  
-**Current published release:** `v1.2.0` (9 November 2026)  
+**Current published release:** `v1.3.0` (10 November 2026)  
+**Release tag:** `v1.3.0` (commit `d12fe8ef55b899af5169dbde3354a47a60807bac`)  
 **Stable branch:** `main`  
 **Development branch:** `develop`  
-**Current development cycle:** DEV-005  
-**Next release:** v1.3.0 (candidate awaiting approval)  
+**Development baseline:** Both branches synchronised at the v1.3.0 release commit before this housekeeping update  
+**Current development cycle:** DEV-006 (scoping and prioritisation)  
+**Next release:** Not yet agreed; no version number or release date assigned  
 **DEV-003 integration:** PR #9, commit `1ad377480c674e718f413d29bdc6416d63ae7f78`  
 **Updated:** 10 November 2026
 
 ## Current development position
 
-Version `v1.2.0` was published on 9 November 2026 following DEV-004. It includes configurable main, supplementary and independent schedule polling; the 5× default supplementary multiplier; live configuration through the options dialogue and `tado_x.set_polling_options`; a rolling observed daily API usage estimate; and a complementary theoretical daily API usage projection. The earlier DEV-003 authentication improvements and existing climate, timer, hot-water, schedule-profile, history, Holiday Mode and multi-home functionality remain in place.
+Version `v1.3.0` was published on 10 November 2026 following DEV-005. It adds five whole-home actions, the home-level Schedule profile status sensor, 0.1 °C temperature selectors for the affected actions, the corrected default for automatic Holiday Mode polling, and revised installation and migration guidance. The release registers 25 `tado_x` actions. Existing multi-home support, schedule profiles and Home/Away settings, extended climate timers, domestic hot water, Holiday Mode, historic data, authentication reliability, polling options and API monitoring remain part of the published baseline.
 
-Following publication, `main` was merged back into `develop` and pushed. Both branches were confirmed synchronised at the start of DEV-005. The supplied complete source and development archives are identical to the approved v1.2.0 release-candidate contents.
+The published `v1.3.0` tag, `main` and `develop` were verified at the same commit (`d12fe8ef55b899af5169dbde3354a47a60807bac`) before this documentation-only housekeeping change. The release tag and `main` must remain unchanged. New development documentation and any subsequently approved work are to be committed to `develop` without retroactively modifying the release.
 
-The maintainer reported seven successful live Home Assistant regression checks covering climate, timers, hot water, schedule profiles, historical data, multi-home isolation and Holiday Mode boundary handling. Polling settings, persistence and API monitoring were also tested live. Flow Temperature was unavailable on the test homes. Compatibility with every earlier installation or Home Assistant version has not been established. Static checks and standalone tests must not be represented as live Tado API verification.
+The maintainer reported successful Home Assistant functional checks of the v1.3.0 whole-home actions, profile-status sensor and temperature selectors. Two replacement trials in a disposable Home Assistant 2026.11 VirtualBox environment retained the specifically checked device and renamed entity IDs, but required reconfiguration and reauthorisation. That result is not a guarantee of identity preservation elsewhere. The updated Holiday Mode polling default has static regression coverage but no separately reported live verification. Flow Temperature could not be tested on the available homes; dynamic addition of rooms and every upgrade path were not live-tested. Refer to `CHANGELOG.md` for release-specific validation and limitations.
 
-DEV-005 begins with documentation-only reconciliation of the published implementation. No functional code change or new release version is authorised by this work package.
+DEV-006 starts with identifying, investigating and prioritising proposed maintenance and enhancement work packages. No functional change is authorised by this initial housekeeping, and no subsequent version or release date has been selected. Significant architectural changes require design discussion before implementation.
+
+## v1.3.0 release record
+
+Published 10 November 2026 after DEV-005 and its documentation/release-readiness review. The release includes five home-wide actions, the Schedule profile status sensor, updated temperature selectors, Holiday Mode polling-default handling and the Marketplace/HACS installation guide. The release tag is immutable for this development cycle. Consult `CHANGELOG.md` for the published feature inventory and the precise scope of reported tests.
+
+## DEV-006 — Post-v1.3.0 maintenance and enhancement planning (10 November 2026)
+
+- Baseline: published v1.3.0 source and documentation, with the `main`, `develop` and release tag verified as synchronised before housekeeping.
+- Initial task: update only the current development status and establish DEV-006 while retaining DEV-001 through DEV-005 history as an audit trail.
+- Next task: collect, investigate and prioritise candidate work packages before functional editing.
+- No version bump, release date, release-candidate package, Home Assistant functional test or Tado API test is implied by this record.
 
 ## v1.2.0 release record
 
@@ -38,7 +51,7 @@ The v1.2.0 source was reviewed before editing. This documentation-only package c
 4. Check translations, Home Assistant action selectors and labels after user-facing changes.
 5. Measure or assess additional Tado API calls before introducing new polling or verification requests.
 
-These are ongoing development verification priorities, not claims that all scenarios were tested for `v1.2.0`.
+These are ongoing development verification priorities, not claims that all scenarios were tested for `v1.3.0`.
 
 ## Development rules
 
