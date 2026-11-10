@@ -8,6 +8,32 @@ The project is independently maintained and is derived from the original Tado X 
 
 **[Readme](README.md)** · [Report an issue](https://github.com/rleatherb/ha-tado-x-enhanced/issues) · [Releases](https://github.com/rleatherb/ha-tado-x-enhanced/releases)
 
+## [1.3.0] - 2026-11-10
+
+### Added
+
+- Five home-targeted actions: `set_climate_timer_home`, `set_away_schedule_home`, `save_schedule_profile_home`, `restore_schedule_profile_home` and `set_hvac_mode_home` (`auto`, `heat`, `off`). These operate on configured rooms sequentially, continue after individual failures and aggregate failures without a whole-home rollback.
+- Home-level **Schedule profile status** sensor, reporting the shared profile name, `Mixed` for differing recognised profiles or `Custom` if any configured room is Custom.
+- `docs/INSTALLATION.md`, covering Marketplace (Home Assistant 2026.11+) and legacy HACS fresh installs and replacement procedures, plus manual recovery.
+
+### Changed
+
+- Home-wide profile save/restore validates the registered home-scoped profile name before any room operation. Whole-home actions exclude rooms discovered after setup or lacking initial `Normal` profile data until the integration is reloaded.
+- Climate timer and Away action UI temperature selectors now accept 0.1 °C increments. Away sliders display 5–30 °C while preserving the existing broader backend YAML validation.
+- For new or unset Holiday Mode polling preferences, the default follows the Auto-Assist selection (enabled with Auto-Assist, disabled without). Explicitly stored preferences are preserved; manual, initial, action-triggered and boundary checks remain available.
+- Clarified that, with schedule comparison polling disabled, room profile status may initially read `Custom` until **Refresh Schedule** is used. No additional automatic API calls were added.
+
+### Migration warning
+
+- **Back up and verify recovery before replacing the original Tado X integration.** Marketplace displays explicit destructive warnings when uninstalling an in-use integration. Two disposable VirtualBox migration trials retained four checked device IDs and five renamed entity IDs, but required fresh setup and Tado authorisation. **Preservation is not guaranteed** for other installations. Follow [the installation guide](docs/INSTALLATION.md), not the fresh-install shortcuts.
+
+### Validation and limitations
+
+- The maintainer reported successful Home Assistant tests of the whole-home actions, profile status and temperature selectors. The two Marketplace replacement trials were performed in a disposable VirtualBox environment. Static and standalone regression checks cover the implementation and polling-default change; a separate live verification of the corrected Holiday Mode default has not been reported.
+- Dynamic registration of rooms added while the integration is running is not supported; reload the integration after adding a Tado room. Real new-room addition and every possible migration/upgrade path have not been live-tested. Existing API Reset Time timestamp presentation is unchanged.
+
+
+
 ## [1.2.0] - 2026-11-09
 
 ### Added

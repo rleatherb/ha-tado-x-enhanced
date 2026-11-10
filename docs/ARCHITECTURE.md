@@ -1,6 +1,6 @@
 # Tado X Enhanced — Technical Architecture
 
-**Documented version:** Tado X Enhanced `1.2.0`  
+**Documented version:** Tado X Enhanced `1.3.0`  
 **Implementation source:** `custom_components/tado_x/` in this repository  
 **Integration domain:** `tado_x`  
 **Repository:** https://github.com/rleatherb/ha-tado-x-enhanced  
@@ -19,7 +19,7 @@ Tado X Enhanced extends Exabird's original Home Assistant Tado X integration whi
 - Control cloud API consumption, especially when automatic schedule checking is enabled.
 - Keep translated labels, action descriptions and implementation aligned.
 
-The enhanced integration **replaces**, rather than runs alongside, another integration using the `tado_x` domain. A Home Assistant backup is recommended before replacement. Compatibility must be tested against existing installations; unchanged domain alone is not proof of a risk-free upgrade.
+The enhanced integration **replaces**, rather than runs alongside, another integration using the `tado_x` domain. A complete, verified Home Assistant backup is required before attempting replacement; Marketplace removal can delete the existing configuration entry and may remove devices and entities. See [INSTALLATION.md](INSTALLATION.md). Compatibility must be tested against existing installations; unchanged domain alone is not proof of a risk-free upgrade.
 
 ## 2. Package and module boundaries
 
@@ -146,15 +146,15 @@ Away configuration is stored separately from the weekly Home schedule and includ
 
 ### 8.1 Registered actions
 
-The source defines **20** `tado_x` actions:
+The source defines **25** `tado_x` actions:
 
 | Area | Actions |
 |---|---|
-| Existing/extended controls | `set_temperature_offset`, `add_meter_reading`, `set_eiq_tariff`, `set_climate_timer` |
-| Home/Away schedules | `get_schedule`, `set_schedule`, `get_away_schedule`, `set_away_schedule` |
+| Existing/extended controls | `set_temperature_offset`, `add_meter_reading`, `set_eiq_tariff`, `set_climate_timer`, `set_climate_timer_home`, `set_hvac_mode_home` |
+| Home/Away schedules | `get_schedule`, `set_schedule`, `get_away_schedule`, `set_away_schedule`, `set_away_schedule_home` |
 | Polling configuration | `set_polling_options` |
 | Historical/holiday data | `get_day_report`, `get_holiday_mode`, `set_holiday_mode` |
-| Profiles | `save_schedule_profile`, `restore_schedule_profile`, `list_schedule_profiles`, `delete_schedule_profile`, `create_schedule_profile`, `save_schedule_profile_default`, `restore_schedule_profile_default`, `reset_schedule_default` |
+| Profiles | `save_schedule_profile`, `restore_schedule_profile`, `save_schedule_profile_home`, `restore_schedule_profile_home`, `list_schedule_profiles`, `delete_schedule_profile`, `create_schedule_profile`, `save_schedule_profile_default`, `restore_schedule_profile_default`, `reset_schedule_default` |
 
 Action schemas and response support are implemented in `__init__.py`; field descriptions live in `services.yaml`, with corresponding translation entries. The read-oriented actions return data where implemented. Do not rename established action identifiers or change their parameters without a deliberate compatibility decision.
 
@@ -269,7 +269,7 @@ Before accepting a code change:
 
 ## 15. Provenance and validation scope
 
-This document describes the implementation packaged with Tado X Enhanced `1.2.0`, including the integration modules, manifest, action definitions and schedule-profile handling. Source inspection and static validation are distinct from live integration tests. For release-specific changes and test scope, consult [CHANGELOG.md](../CHANGELOG.md).
+This document describes the implementation packaged with Tado X Enhanced `1.3.0`, including the integration modules, manifest, action definitions and schedule-profile handling. Source inspection and static validation are distinct from live integration tests. For release-specific changes and test scope, consult [CHANGELOG.md](../CHANGELOG.md).
 
 Tado X Enhanced is an independently maintained MIT-licensed derivative of Exabird's original integration. Retain the original and subsequent copyright notices in the repository's [LICENSE](../LICENSE).
 

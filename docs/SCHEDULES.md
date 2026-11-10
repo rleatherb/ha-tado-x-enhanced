@@ -287,3 +287,7 @@ The room profile's current selection can display **Custom** when its live Home/A
 
 ### Holiday Mode interaction
 Next Schedule Change, Power and Temperature continue to describe the underlying normal schedule; active Holiday Mode may override it. The Holiday Status sensor identifies the current holiday period.
+
+### Whole-home schedule profile actions
+
+`save_schedule_profile_home` and `restore_schedule_profile_home` use an existing home-wide profile name but save/restore each room's own Home and Away schedule. Names are validated before processing begins. Uninitialised rooms are skipped with an error; reload the integration after adding rooms. See [ACTIONS.md](ACTIONS.md) for parameters and failure reporting.

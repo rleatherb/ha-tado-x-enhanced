@@ -330,7 +330,7 @@ class ProfileManager:
             await self.persist()
             self._update_match(room_id, snapshot)
 
-    async def restore(self, room_id, profile, *, use_default=False):
+    async def restore(self, room_id, profile, *, use_default=False, refresh=True):
         if profile not in self.all_names():
             raise HomeAssistantError(f"Unknown profile: {profile}")
         key = str(room_id)
@@ -415,7 +415,8 @@ class ProfileManager:
             # Refresh it now rather than waiting for the next polling interval.
             # This updates all room sensors and climate attributes together.
             try:
-                await self.coordinator.async_request_refresh()
+                if refresh:
+                    await self.coordinator.async_request_refresh()
             except Exception as err:
                 _LOGGER.warning(
                     "Profile %s restored for home %s room %s, but immediate "

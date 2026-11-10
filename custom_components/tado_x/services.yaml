@@ -123,7 +123,7 @@ set_climate_timer:
         number:
           min: 5.0
           max: 30.0
-          step: 0.5
+          step: 0.1
           unit_of_measurement: "°C"
     duration:
       name: Duration
@@ -207,10 +207,10 @@ set_away_schedule:
       required: false
       selector:
         number:
-          min: 0.1
-          max: 49.9
-          step: 0.5
-          mode: box
+          min: 5.0
+          max: 30.0
+          step: 0.1
+          mode: slider
           unit_of_measurement: °C
     preheating_level:
       name: Preheating level
@@ -559,3 +559,144 @@ set_polling_options:
       description: Enable or disable domestic hot water polling for this home.
       selector:
         boolean:
+
+# Whole-home actions operate on rooms configured at integration startup.
+# Newly discovered rooms are skipped until the integration is reloaded.
+set_climate_timer_home:
+  name: Set climate timer for home
+  description: Apply one temperature and termination setting to every configured room in the selected Tado home. Rooms are processed sequentially; failures are reported together without undoing successful rooms. Reload the integration after adding a room.
+  fields:
+    device_id:
+      name: Tado X Home device
+      description: Optional for one configured home; required for multiple homes. Select the Home device, not a room device.
+      required: false
+      selector:
+        device:
+          integration: tado_x
+    temperature:
+      name: Temperature
+      required: true
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.1
+          unit_of_measurement: "°C"
+    termination_type:
+      name: Termination type
+      description: Defaults to TIMER.
+      required: false
+      selector:
+        select:
+          options:
+            - TIMER
+            - MANUAL
+            - NEXT_TIME_BLOCK
+    duration:
+      name: Duration in minutes
+      description: Required for TIMER; ignored for other termination types.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 1440
+          mode: box
+
+restore_schedule_profile_home:
+  name: Restore schedule profile for home
+  description: Restore each configured room's own saved Home and Away settings for an existing home-wide profile name, falling back to the home default. The name is validated before any room changes. Room failures are aggregated; each room retains its existing rollback behaviour.
+  fields:
+    device_id:
+      name: Tado X Home device
+      description: Optional for one configured home; required for multiple homes.
+      required: false
+      selector:
+        device:
+          integration: tado_x
+    profile:
+      name: Existing profile name
+      required: true
+      example: Eco
+      selector:
+        text:
+
+save_schedule_profile_home:
+  name: Save schedule profile for home
+  description: Capture each configured room's current Home and Away settings under an existing home-wide profile name. The name is validated before any room is saved. Existing active schedules are not changed.
+  fields:
+    device_id:
+      name: Tado X Home device
+      description: Optional for one configured home; required for multiple homes.
+      required: false
+      selector:
+        device:
+          integration: tado_x
+    profile:
+      name: Existing profile name
+      required: true
+      example: Eco
+      selector:
+        text:
+
+set_away_schedule_home:
+  name: Set away schedule for home
+  description: Update Away settings for every configured room in the selected home. If a temperature or preheating level is omitted, each room retains its own current value when available. Saved profiles are not changed. Failures are reported together.
+  fields:
+    device_id:
+      name: Tado X Home device
+      description: Optional for one configured home; required for multiple homes.
+      required: false
+      selector:
+        device:
+          integration: tado_x
+    mode:
+      name: Away mode
+      required: true
+      selector:
+        select:
+          options:
+            - "ON"
+            - "OFF"
+    away_temperature:
+      name: Away temperature
+      description: Used for ON; when omitted, each room's current Away temperature is retained if available.
+      required: false
+      selector:
+        number:
+          min: 5.0
+          max: 30.0
+          step: 0.1
+          mode: slider
+          unit_of_measurement: "°C"
+    preheating_level:
+      name: Preheating level
+      description: When omitted, each room's current setting is retained.
+      required: false
+      selector:
+        select:
+          options:
+            - "OFF"
+            - "ECO"
+            - "BALANCE"
+            - "COMFORT"
+
+set_hvac_mode_home:
+  name: Set HVAC mode for home
+  description: Apply the same HVAC mode to every configured room in the selected Tado home. Auto resumes each room's Tado schedule; heat applies its current target as a manual override; off switches heating off manually. Failures are reported together.
+  fields:
+    device_id:
+      name: Tado X Home device
+      description: Optional for one configured home; required for multiple homes.
+      required: false
+      selector:
+        device:
+          integration: tado_x
+    hvac_mode:
+      name: HVAC mode
+      required: true
+      selector:
+        select:
+          options:
+            - auto
+            - heat
+            - "off"

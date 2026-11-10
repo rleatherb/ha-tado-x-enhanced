@@ -435,6 +435,8 @@ async def async_setup_entry(
     for description in HOME_SENSORS:
         entities.append(TadoXHomeSensor(coordinator, description))
 
+    entities.append(TadoXHomeScheduleProfileSensor(coordinator))
+
     # Add weather sensors (only if feature is enabled)
     if coordinator.enable_weather:
         for description in WEATHER_SENSORS:
@@ -516,6 +518,42 @@ async def async_setup_entry(
                     entity_id,
                     disabled_by=None,
                 )
+
+
+class TadoXHomeScheduleProfileSensor(CoordinatorEntity[TadoXDataUpdateCoordinator], SensorEntity):
+    """Overall home profile state derived from existing room comparisons."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Schedule profile status"
+    _attr_icon = "mdi:calendar-check"
+
+    def __init__(self, coordinator: TadoXDataUpdateCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.home_id}_schedule_profile_status"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(identifiers={(DOMAIN, str(self.coordinator.home_id))})
+
+    @property
+    def native_value(self) -> str | None:
+        manager = getattr(self.coordinator, "schedule_profile_manager", None)
+        if manager is None or self.coordinator.data is None:
+            return None
+        configured = getattr(self.coordinator, "configured_room_ids", frozenset())
+        rooms = [room_id for room_id in self.coordinator.data.rooms if room_id in configured]
+        if not rooms:
+            return None
+        values = [manager.selected(room_id) for room_id in rooms]
+        if "Custom" in values:
+            return "Custom"
+        return values[0] if len(set(values)) == 1 else "Mixed"
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        manager = getattr(self.coordinator, "schedule_profile_manager", None)
+        if manager is not None:
+            self.async_on_remove(manager.listen(self.async_write_ha_state))
 
 
 class TadoXHomeSensor(CoordinatorEntity[TadoXDataUpdateCoordinator], SensorEntity):

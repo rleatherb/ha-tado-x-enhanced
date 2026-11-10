@@ -2,7 +2,7 @@
 
 [README](../README.md) · [Schedules](SCHEDULES.md) · [Examples](EXAMPLES.md) · [Architecture](ARCHITECTURE.md)
 
-Tado X Enhanced v1.2.0 registers **20 actions** under `tado_x`, available in **Developer Tools → Actions**. The following parameters were checked against the service schemas in `custom_components/tado_x/__init__.py` and descriptions in `services.yaml`.
+Tado X Enhanced v1.3.0 registers **25 actions** under `tado_x`, available in **Developer Tools → Actions**. The following parameters were checked against the service schemas in `custom_components/tado_x/__init__.py` and descriptions in `services.yaml`.
 
 **Targeting:** `entity_id` identifies a room climate entity and resolves its home. For home-level actions, `device_id` identifies the **Tado X Home** device; it may be omitted only when a single home is configured. `set_temperature_offset` requires the physical device's `device_id`. Profile names are free-text strings (up to 80 characters), validated against the names defined for the selected home.
 
@@ -87,3 +87,31 @@ data:
 The `device_id` line may be omitted for a single-home installation.
 
 Supported optional fields: `scan_interval` (30–3600), `supplementary_poll_multiplier` (1, 2, 5, 10), `schedule_poll_interval` (900–86400), `enable_schedule_polling`, `enable_holiday_polling`, `enable_weather`, `enable_air_comfort`, `enable_running_times`, `enable_flow_temp`, `enable_mobile_devices` and `enable_hot_water`. All `enable_*` fields are booleans. A day/night automation should also run at Home Assistant startup to restore the appropriate current setting after a restart.
+
+
+## Whole-home actions
+
+The following actions target the selected **Tado X Home** device (`device_id`). The device is optional when only one Tado X home is configured, but mandatory for multiple homes. A room device is not accepted. All actions process rooms **sequentially** and independently, continue after a room fails, and report all failures together with the count and names of successful rooms. There is no whole-home rollback. A successful call is logged; partial failures raise a Home Assistant action error that lists successes and failures.
+
+- `tado_x.set_hvac_mode_home`: `hvac_mode` (`auto`, `heat`, `off`). `auto` resumes each room’s existing Tado schedule; `heat` applies each room’s current target temperature (or 21 °C fallback) as a manual override; `off` switches each room off manually. Like the other whole-home actions, rooms are processed sequentially with aggregated failures and a single final coordinator refresh.
+- `tado_x.set_climate_timer_home`: `temperature` (5–30 °C), optional `termination_type` (`TIMER`, `MANUAL`, `NEXT_TIME_BLOCK`; defaults to `TIMER`), and `duration` (1–1440 minutes; required for `TIMER`). Applies identical settings to all eligible rooms.
+- `tado_x.set_away_schedule_home`: `mode` (`ON` or `OFF`), optional `away_temperature` and `preheating_level`. As with the room action, omitted values preserve each room's current settings when available; `away_temperature` is needed when turning ON from a room with no existing Away temperature. Does not modify saved profiles.
+- `tado_x.save_schedule_profile_home`: `profile` must be an existing home-wide name. Saves each room's current Home and Away schedules into its own version of the profile; does not change active schedules or home defaults.
+- `tado_x.restore_schedule_profile_home`: `profile` must be an existing home-wide name. Restores each room's own profile or the home default/factory fallback, preserving existing per-room rollback behaviour. One coordinator refresh is requested after the batch.
+
+For both profile actions, an unknown profile name is rejected **before** processing any rooms. Create custom names using `tado_x.create_schedule_profile` first. Names are scoped to the selected home.
+
+**Temperature controls:** Tools > Actions sliders for `set_climate_timer`, `set_climate_timer_home`, `set_away_schedule` and `set_away_schedule_home` accept 0.1 °C increments. The Away sliders show 5–30 °C for convenience; the existing underlying Away action validation remains 0.1–49.9 °C for YAML calls.
+
+**Room discovery limitation:** Only rooms successfully configured during the integration's setup and possessing an initial saved `Normal` profile are eligible for these actions. If Tado adds a room during normal polling, it is reported as skipped until **Tado X Enhanced is reloaded**. A failed initial `Normal` capture likewise excludes that room until corrected/reloaded. This prevents whole-home actions from changing an uninitialised room. No dynamic entity registration is attempted.
+
+Example:
+
+```yaml
+action: tado_x.restore_schedule_profile_home
+data:
+  device_id: YOUR_TADO_X_HOME_DEVICE_ID
+  profile: Winter
+```
+
+The `device_id` line can be omitted when only one home is configured.

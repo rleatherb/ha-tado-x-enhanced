@@ -10,7 +10,7 @@ Each configured Tado home has its own options under **Settings → Devices & ser
 | Main update interval | General integration polling, in seconds (configuration range: 30–3600). |  |
 | Automatically check for schedule changes | Enable periodic Home/Away schedule comparisons. Defaults to on for Auto-Assist and off otherwise, unless explicitly set. | 1.0.0 |
 | Schedule checking interval | Independent schedule checking interval: 900–86400 seconds (15 minutes–24 hours); default 3600 seconds. | 1.2.0 |
-| Automatically check for Holiday Mode changes | Independent checkbox; enabled by default, including on existing installations. | 1.2.0 |
+| Automatically check for Holiday Mode changes | Independent checkbox; defaults to on with Auto-Assist and off without it when no choice is stored. Explicitly saved choices remain unchanged. | 1.2.0 |
 | Supplementary polling multiplier | 1×, 2×, 5× or 10× the main interval for Weather, Air Comfort, Heating Running Times, Flow Temperature and Holiday Mode; **5× by default**. | 1.2.0 |
 | Weather | Enable weather data where available. |  |
 | Mobile devices | Enable mobile presence/tracker data. |  |
@@ -24,7 +24,7 @@ Each configured Tado home has its own options under **Settings → Devices & ser
 
 Each main coordinator update makes **3 mandatory API requests per home** (rooms, rooms/devices and home state). Enabled Mobile Devices and Hot Water each add one request per main update. Weather, Air Comfort, Heating Running Times, Flow Temperature and Holiday Mode are **supplementary features**: each enabled feature adds approximately one request every `main_interval × supplementary_multiplier` seconds. Choose 1× (normal), 2×, 5× or 10×; the default is 5×. The configuration form groups the five supplementary features beneath this setting. Last successful values are retained between refreshes, with same-day handling for Heating Running Times. Holiday Mode initial/manual/action/boundary refreshes and flow-temperature action-triggered refreshes remain available regardless of multiplier.
 
-Schedule profile checking remains independent, with its own enable checkbox and 900–86400 second interval (default 3600 seconds). Holiday Mode has its own enable checkbox but **does not use the schedule interval**.
+Schedule profile checking remains independent, with its own enable checkbox and 900–86400 second interval (default 3600 seconds). Holiday Mode has its own enable checkbox but **does not use the schedule interval**. Its periodic polling defaults to the Auto-Assist setting when no explicit value is stored; existing saved settings take precedence.
 
 Theoretical scheduled daily requests per home, excluding startup, manual actions, authentication, retries and other API activity, are approximately:
 
@@ -55,7 +55,7 @@ Schedule checking requires approximately two API reads per room per check. For 1
 
 ## Multiple homes and compatibility
 
-Each home has its own coordinator, configuration options and schedule-profile storage. Home-level actions require a **Tado X Home device** target when more than one home is configured; room actions resolve the home from the climate entity. The integration uses domain `tado_x` and cannot coexist with another integration using the same domain. See [README.md](../README.md) for the replacement-installation precautions.
+Each home has its own coordinator, configuration options and schedule-profile storage. Home-level actions require a **Tado X Home device** target when more than one home is configured; room actions resolve the home from the climate entity. The integration uses domain `tado_x` and cannot coexist with another integration using the same domain. See [INSTALLATION.md](INSTALLATION.md) for the backup requirements and tested Marketplace/HACS replacement procedures.
 
 ## Troubleshooting
 
@@ -78,3 +78,7 @@ The supplementary polling multiplier sets the time between enabled supplementary
 Flow Temperature uses one API request per scheduled supplementary update when enabled. Flow Temperature controls may initiate an additional immediate refresh; this behaviour is documented here rather than in the concise option description. Schedule checking is independently enabled and uses its own interval; changing the Auto-Assist checkbox does not automatically enable schedule checking or overwrite user-selected intervals.
 
 The Configure dialogue recommends keeping actual API consumption below 100% of the allowance. The quota, rolling observed projection and theoretical configured-workload projection are available on the Tado home device.
+
+### Adding Tado rooms
+
+If a room is added in Tado while Home Assistant is running, reload the Tado X Enhanced integration to register its device and entities and capture its initial `Normal` schedule profile. Whole-home actions will skip rooms discovered after setup or without an initial `Normal` profile and report them explicitly; automatic dynamic entity registration is not supported.

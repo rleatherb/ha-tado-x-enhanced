@@ -8,9 +8,9 @@
 **Stable branch:** `main`  
 **Development branch:** `develop`  
 **Current development cycle:** DEV-005  
-**Next release:** To be determined  
+**Next release:** v1.3.0 (candidate awaiting approval)  
 **DEV-003 integration:** PR #9, commit `1ad377480c674e718f413d29bdc6416d63ae7f78`  
-**Updated:** 9 November 2026
+**Updated:** 10 November 2026
 
 ## Current development position
 
@@ -158,3 +158,25 @@ Updated the Configure dialogue introduction to recommend quota-conscious startin
 - Clarified that larger supplementary multipliers reduce polling frequency and API requests; removed the multiplier default from the Configure description without changing the actual 5× default.
 - Simplified Flow Temperature description and removed upgrade/default wording from schedule checking description.
 - Aligned `strings.json` and the five shipped translation files with the agreed options text. No functional code, entity identities, polling behaviour or API request counts changed.
+
+## DEV-005 — Whole-home actions (development, not released)
+
+Implemented `set_climate_timer_home`, `set_away_schedule_home`, `save_schedule_profile_home`, and `restore_schedule_profile_home` with home-device resolution, preflight profile-name validation, sequential room processing, aggregated failure reporting, and a startup-room/Normal-profile eligibility guard. Per-room restore retains its rollback logic; bulk restores use one final coordinator refresh. Dynamic room addition is explicitly out of scope. Live Home Assistant/Tado testing remains outstanding.
+
+### DEV-005 Fix 2 — whole-home enhancements (2026-11-10)
+
+Following live maintainer testing of the four whole-home actions (successful startup, save/restore profiles, invalid-name rejection, timer modes and Away settings), added `set_hvac_mode_home` (`auto`, `heat`, `off`), a home-level Schedule profile status sensor (`Custom` takes precedence over `Mixed`), and corrected all four action temperature selectors to 0.1 °C increments, with 5–30 °C Away UI sliders. The backend Away validation remains unchanged. Reviewed bulk restore: room-level schedule and Away requests are sequential and the batch already requests one coordinator refresh; no speculative parallelisation was introduced. Fix 2 requires live Home Assistant validation.
+
+### DEV-005 post-test and Marketplace migration review (10 November 2026)
+
+- Maintainer reported all DEV-005 Fix 2 Home Assistant functional tests passed. This does not include a real new-room addition (explicitly out of scope).
+- Home Assistant 2026.11 Marketplace migration from original Exabird Tado X to Enhanced was repeated twice in a disposable VirtualBox installation. The original integration was explicitly deleted through two destructive warnings; Enhanced required new setup and Tado authorisation. Four checked device IDs and five deliberately renamed entity IDs were retained in those tests. This is not a general preservation guarantee.
+- Added `docs/INSTALLATION.md` with separate Marketplace/HACS fresh and replacement instructions, strongly emphasised backup and recovery requirements, and a conservative account of the observed migration results.
+- Corrected absent-value Holiday Mode periodic polling defaults to follow Auto-Assist (enabled with subscription, disabled without); explicitly stored values remain unchanged. The initial/manual/action/boundary reads remain unaffected.
+- Documented initial Custom profile status when automatic schedule checking is off. No automatic API requests were added.
+- These changes are development-stage pending static checks and maintainer confirmation; they are not yet a publication-ready v1.3.0 candidate.
+
+## v1.3.0 publication-readiness review (10 November 2026)
+
+Prepared a publication-ready candidate from the DEV-005 Marketplace Review development package. Version metadata and public documentation were reconciled with the 25 registered actions, the home profile status sensor, 0.1 °C selectors, the Holiday Mode polling default and the tested Marketplace migration procedure. Public DEV/Fix labels were removed; historical development notes above remain as an audit trail. The API Reset Time timestamp sensor remains unchanged by decision. Candidate status and any outstanding approval or live verification are recorded here rather than in public-facing release documentation.
+

@@ -324,7 +324,7 @@ class TadoXOptionsFlow(OptionsFlow):
             custom_interval = user_input.get(CONF_SCAN_INTERVAL)
             enable_schedule_polling = user_input.get(CONF_ENABLE_SCHEDULE_POLLING, has_auto_assist)
             schedule_poll_interval = user_input.get(CONF_SCHEDULE_POLL_INTERVAL, DEFAULT_SCHEDULE_POLL_INTERVAL)
-            enable_holiday_polling = user_input.get(CONF_ENABLE_HOLIDAY_POLLING, True)
+            enable_holiday_polling = user_input.get(CONF_ENABLE_HOLIDAY_POLLING, has_auto_assist)
             supplementary_poll_multiplier = int(user_input.get(CONF_SUPPLEMENTARY_POLL_MULTIPLIER, DEFAULT_SUPPLEMENTARY_POLL_MULTIPLIER))
 
             # Get feature toggles
@@ -385,7 +385,7 @@ class TadoXOptionsFlow(OptionsFlow):
         current_auto_assist = self.config_entry.data.get(CONF_HAS_AUTO_ASSIST, False)
         current_schedule_polling = self.config_entry.data.get(CONF_ENABLE_SCHEDULE_POLLING, current_auto_assist)
         current_schedule_interval = self.config_entry.data.get(CONF_SCHEDULE_POLL_INTERVAL, DEFAULT_SCHEDULE_POLL_INTERVAL)
-        current_holiday_polling = self.config_entry.data.get(CONF_ENABLE_HOLIDAY_POLLING, True)
+        current_holiday_polling = self.config_entry.data.get(CONF_ENABLE_HOLIDAY_POLLING, current_auto_assist)
         current_multiplier = int(self.config_entry.data.get(CONF_SUPPLEMENTARY_POLL_MULTIPLIER, DEFAULT_SUPPLEMENTARY_POLL_MULTIPLIER) or DEFAULT_SUPPLEMENTARY_POLL_MULTIPLIER)
         if current_multiplier not in SUPPLEMENTARY_POLL_MULTIPLIERS:
             current_multiplier = DEFAULT_SUPPLEMENTARY_POLL_MULTIPLIER

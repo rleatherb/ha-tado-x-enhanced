@@ -74,6 +74,11 @@ ATTR_TERMINATION_TYPE: Final = "termination_type"
 SERVICE_GET_SCHEDULE: Final = "get_schedule"
 SERVICE_GET_AWAY_SCHEDULE: Final = "get_away_schedule"
 SERVICE_SET_AWAY_SCHEDULE: Final = "set_away_schedule"
+SERVICE_SET_CLIMATE_TIMER_HOME: Final = "set_climate_timer_home"
+SERVICE_SET_AWAY_SCHEDULE_HOME: Final = "set_away_schedule_home"
+SERVICE_SET_HVAC_MODE_HOME: Final = "set_hvac_mode_home"
+SERVICE_SAVE_PROFILE_HOME: Final = "save_schedule_profile_home"
+SERVICE_RESTORE_PROFILE_HOME: Final = "restore_schedule_profile_home"
 SERVICE_SAVE_PROFILE = "save_schedule_profile"
 SERVICE_RESTORE_PROFILE = "restore_schedule_profile"
 SERVICE_LIST_PROFILES = "list_schedule_profiles"
@@ -150,9 +155,33 @@ SERVICE_SET_CLIMATE_TIMER_SCHEMA = vol.Schema(
 )
 
 
+SERVICE_SET_CLIMATE_TIMER_HOME_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_HOME_DEVICE_ID): cv.string,
+        vol.Required(ATTR_TEMPERATURE): vol.All(vol.Coerce(float), vol.Range(min=5.0, max=30.0)),
+        vol.Optional(ATTR_DURATION): vol.All(vol.Coerce(int), vol.Range(min=1, max=1440)),
+        vol.Optional(ATTR_TERMINATION_TYPE, default=TERMINATION_TIMER): vol.In(
+            [TERMINATION_TIMER, TERMINATION_MANUAL, TERMINATION_NEXT_TIME_BLOCK]
+        ),
+    }
+)
+
+SERVICE_SET_AWAY_SCHEDULE_HOME_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_HOME_DEVICE_ID): cv.string,
+        vol.Required("mode"): vol.In(["ON", "OFF"]),
+        vol.Optional("away_temperature"): vol.All(vol.Coerce(float), vol.Range(min=0.1, max=49.9)),
+        vol.Optional("preheating_level"): vol.In(["OFF", "ECO", "BALANCE", "COMFORT"]),
+    }
+)
+
+SERVICE_SET_HVAC_MODE_HOME_SCHEMA = vol.Schema({vol.Optional(ATTR_HOME_DEVICE_ID): cv.string, vol.Required("hvac_mode"): vol.In(["auto", "heat", "off"])})
+
 RESET_DEFAULT_SCHEMA = vol.Schema({vol.Optional(ATTR_HOME_DEVICE_ID): cv.string, vol.Required("profile"): vol.In(DEFAULT_PROFILES)})
 
 HOME_PROFILE_SCHEMA = vol.Schema({vol.Optional(ATTR_HOME_DEVICE_ID): cv.string, vol.Required("profile"): vol.All(cv.string, vol.Length(min=1, max=80))})
+
+HOME_PROFILE_ACTION_SCHEMA = HOME_PROFILE_SCHEMA
 
 PROFILE_SCHEMA = vol.Schema({vol.Required(ATTR_ENTITY_ID): cv.entity_id, vol.Required("profile"): vol.All(cv.string, vol.Length(min=1, max=80))})
 
@@ -419,7 +448,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     holiday_manager = HolidayModeManager(
         hass, coordinator,
-        enabled=entry.data.get(CONF_ENABLE_HOLIDAY_POLLING, True),
+        enabled=entry.data.get(CONF_ENABLE_HOLIDAY_POLLING, has_auto_assist),
     )
     coordinator.holiday_mode_manager = holiday_manager
     await holiday_manager.start()
@@ -483,6 +512,141 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "Select the Tado X Home device (not a room, thermostat or valve device)"
             )
         return matches[0]
+
+    def whole_home_rooms(service_coordinator):
+        """Return current room inventory with startup/Normal eligibility flags.
+
+        Startup room IDs are frozen only after device and entity setup succeeds;
+        coordinator polling may subsequently reveal rooms not yet configured.
+        """
+        manager = service_coordinator.schedule_profile_manager
+        startup_rooms = getattr(service_coordinator, "configured_room_ids", frozenset())
+        rooms = service_coordinator.data.rooms if service_coordinator.data else {}
+        for room_id, room in sorted(rooms.items()):
+            if room_id not in startup_rooms:
+                yield room_id, room, "discovered after setup; reload the Tado X integration"
+            elif "Normal" not in manager.profiles.get(str(room_id), {}):
+                yield room_id, room, "initial Normal profile was not saved; reload the Tado X integration"
+            else:
+                yield room_id, room, None
+
+    async def run_whole_home(service_coordinator, action, operation, *, refresh=False):
+        """Process all rooms sequentially, reporting partial failures together."""
+        successes = []
+        failures = []
+        for room_id, room, excluded_reason in whole_home_rooms(service_coordinator):
+            label = f"{room.name} (room {room_id})"
+            if excluded_reason:
+                failures.append(f"{label}: skipped ({excluded_reason})")
+                continue
+            try:
+                await operation(room_id)
+                successes.append(label)
+            except Exception as err:
+                _LOGGER.warning("%s failed for home %s %s: %s", action, service_coordinator.home_id, label, err)
+                failures.append(f"{label}: {err}")
+        if refresh and successes:
+            try:
+                await service_coordinator.async_request_refresh()
+            except Exception as err:
+                failures.append(f"Home state refresh: {err}")
+        _LOGGER.info("%s for home %s: %d succeeded, %d failed/skipped; successful rooms: %s",
+                     action, service_coordinator.home_id, len(successes), len(failures), ", ".join(successes))
+        if failures:
+            raise HomeAssistantError(
+                f"{action} for home {service_coordinator.home_id}: "
+                f"{len(successes)} succeeded ({', '.join(successes) or 'none'}); "
+                f"{len(failures)} failed/skipped: {'; '.join(failures)}"
+            )
+
+    async def async_set_climate_timer_home(call: ServiceCall) -> None:
+        service_coordinator = get_home_coordinator(call)
+        termination_type = call.data.get(ATTR_TERMINATION_TYPE, TERMINATION_TIMER)
+        duration = call.data.get(ATTR_DURATION)
+        if termination_type == TERMINATION_TIMER and duration is None:
+            raise HomeAssistantError("Duration is required for Timer termination type")
+
+        async def apply(room_id):
+            await service_coordinator.api.set_room_temperature(
+                room_id=room_id, temperature=call.data[ATTR_TEMPERATURE], power="ON",
+                termination_type=termination_type,
+                duration_seconds=duration * 60 if termination_type == TERMINATION_TIMER else None,
+            )
+
+        await run_whole_home(service_coordinator, SERVICE_SET_CLIMATE_TIMER_HOME, apply, refresh=True)
+
+    async def async_set_away_schedule_home(call: ServiceCall) -> None:
+        service_coordinator = get_home_coordinator(call)
+        manager = service_coordinator.schedule_profile_manager
+
+        async def apply(room_id):
+            previous = await service_coordinator.api.get_zone_away_configuration(room_id)
+            mode = call.data["mode"]
+            temperature = (call.data.get("away_temperature", previous.get("awayTemperatureCelsius"))
+                           if mode == "ON" else None)
+            if mode == "ON" and temperature is None:
+                raise HomeAssistantError("away_temperature is required when switching Away mode ON "
+                                         "from a configuration without an Away temperature")
+            configuration = {
+                "mode": mode, "awayTemperatureCelsius": temperature,
+                "preheatingLevel": call.data.get("preheating_level", previous["preheatingLevel"]),
+            }
+            await service_coordinator.api.set_zone_away_configuration(room_id, configuration)
+            await manager.check(room_id)
+
+        await run_whole_home(service_coordinator, SERVICE_SET_AWAY_SCHEDULE_HOME, apply)
+
+    def whole_home_profile_target(call):
+        service_coordinator = get_home_coordinator(call)
+        manager = service_coordinator.schedule_profile_manager
+        profile = call.data["profile"].strip()
+        if profile not in manager.all_names():
+            raise HomeAssistantError(
+                f"Schedule profile '{profile}' does not exist for Tado home "
+                f"{service_coordinator.home_id}. Create it first using tado_x.create_schedule_profile."
+            )
+        return service_coordinator, manager, profile
+
+    async def async_save_profile_home(call: ServiceCall) -> None:
+        service_coordinator, manager, profile = whole_home_profile_target(call)
+        await run_whole_home(service_coordinator, SERVICE_SAVE_PROFILE_HOME,
+                             lambda room_id: manager.save(room_id, profile))
+
+    async def async_restore_profile_home(call: ServiceCall) -> None:
+        service_coordinator, manager, profile = whole_home_profile_target(call)
+        await run_whole_home(service_coordinator, SERVICE_RESTORE_PROFILE_HOME,
+                             lambda room_id: manager.restore(room_id, profile, refresh=False), refresh=True)
+
+    async def async_set_hvac_mode_home(call: ServiceCall) -> None:
+        """Apply climate HVAC mode to every eligible room in the selected home."""
+        service_coordinator = get_home_coordinator(call)
+        mode = call.data["hvac_mode"]
+
+        async def apply(room_id):
+            if mode == "auto":
+                await service_coordinator.api.resume_schedule(room_id)
+            elif mode == "off":
+                await service_coordinator.api.set_room_off(
+                    room_id, termination_type=TERMINATION_MANUAL
+                )
+            else:
+                room = service_coordinator.data.rooms[room_id]
+                await service_coordinator.api.set_room_temperature(
+                    room_id, temperature=room.target_temperature or 21.0,
+                    termination_type=TERMINATION_MANUAL,
+                )
+
+        await run_whole_home(service_coordinator, SERVICE_SET_HVAC_MODE_HOME, apply, refresh=True)
+
+    for service_name, handler, schema in (
+        (SERVICE_SET_CLIMATE_TIMER_HOME, async_set_climate_timer_home, SERVICE_SET_CLIMATE_TIMER_HOME_SCHEMA),
+        (SERVICE_SET_HVAC_MODE_HOME, async_set_hvac_mode_home, SERVICE_SET_HVAC_MODE_HOME_SCHEMA),
+        (SERVICE_SET_AWAY_SCHEDULE_HOME, async_set_away_schedule_home, SERVICE_SET_AWAY_SCHEDULE_HOME_SCHEMA),
+        (SERVICE_SAVE_PROFILE_HOME, async_save_profile_home, HOME_PROFILE_ACTION_SCHEMA),
+        (SERVICE_RESTORE_PROFILE_HOME, async_restore_profile_home, HOME_PROFILE_ACTION_SCHEMA),
+    ):
+        if not hass.services.has_service(DOMAIN, service_name):
+            hass.services.async_register(DOMAIN, service_name, handler, schema=schema)
 
     async def async_set_temperature_offset(call: ServiceCall) -> None:
         """Handle set_temperature_offset service call."""
@@ -1022,6 +1186,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator.parent_device_ids[room_identifier] = room_device.id
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Only rooms configured at setup are eligible for whole-home actions.
+    # Later coordinator polls may discover new rooms without HA entities.
+    coordinator.configured_room_ids = frozenset(coordinator.data.rooms)
 
     return True
 

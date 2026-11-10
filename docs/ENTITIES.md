@@ -190,3 +190,7 @@ The Tado X Home device provides a Holiday Mode switch, Holiday Status sensor (Of
 The existing **Holiday Start** and **Holiday End** entities remain timestamp sensors for automations. Home Assistant may display these as relative dates. The additional **Holiday Start (Local)** and **Holiday End (Local)** text sensors display an absolute local date and time, for example `01 Nov 2026, 07:00`. Timestamp sensors also provide a `local_datetime` attribute.
 
 When Holiday Mode is active, the hot-water API may report `HOLIDAY_MODE_OFF`. **Hot Water State** retains this diagnostic API value; **Hot Water Mode** displays Off. Holiday switches and refreshes trigger an additional home coordinator refresh to update the hot-water entities.
+
+### Home schedule profile status
+
+The **Schedule profile status** sensor belongs to the Tado X Home device and summarises the currently configured rooms in that home. If all rooms match the same profile, that profile name is shown; different recognised profiles give `Mixed`; if any room is `Custom`, the home reads `Custom` (taking precedence over `Mixed`). The sensor follows existing profile comparison updates and makes no additional Tado API requests. Rooms discovered after setup are excluded until an integration reload.

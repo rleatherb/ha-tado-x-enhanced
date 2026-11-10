@@ -428,6 +428,84 @@
           "description": "Enable or disable hot water"
         }
       }
+    },
+    "set_climate_timer_home": {
+      "name": "Régler la minuterie de chauffage pour tout le domicile",
+      "description": "Définit une dérogation de température. Minuterie (par défaut) : température et durée obligatoires ; Manuel : température obligatoire ; Prochaine plage horaire : température obligatoire, durée inutile. Applies to every configured room of the selected home. Rooms discovered after startup are skipped until reload. Individual failures are reported together.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Home device"
+        },
+        "temperature": {
+          "name": "Température",
+          "description": "Température obligatoire pour Minuterie, Manuel et Prochaine plage horaire."
+        },
+        "duration": {
+          "name": "Durée",
+          "description": "Obligatoire uniquement pour Minuterie (1 à 1440 minutes) ; ignorée pour les autres modes."
+        },
+        "termination_type": {
+          "name": "Type de fin",
+          "description": "Minuterie par défaut (température et durée obligatoires) ; Manuel et Prochaine plage horaire (température obligatoire uniquement)."
+        }
+      }
+    },
+    "restore_schedule_profile_home": {
+      "name": "Restaurer le profil de programmation du domicile",
+      "description": "Restore an existing room profile with home-default fallback. Applies to every configured room of the selected home. Rooms discovered after startup are skipped until reload. Individual failures are reported together.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Home device"
+        },
+        "profile": {
+          "name": "Nom du profil"
+        }
+      }
+    },
+    "save_schedule_profile_home": {
+      "name": "Enregistrer le profil de programmation du domicile",
+      "description": "Save the current Home and Away schedule to an existing room profile. Applies to every configured room of the selected home. Rooms discovered after startup are skipped until reload. Individual failures are reported together.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Home device"
+        },
+        "profile": {
+          "name": "Nom du profil"
+        }
+      }
+    },
+    "set_away_schedule_home": {
+      "name": "Régler la programmation d’absence pour tout le domicile",
+      "description": "Modifie le mode Absence, sa température et éventuellement le préchauffage d’une pièce. Les profils enregistrés restent inchangés. Applies to every configured room of the selected home. Rooms discovered after startup are skipped until reload. Individual failures are reported together.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Home device"
+        },
+        "mode": {
+          "name": "Mode Absence",
+          "description": "Active ou désactive le contrôle de température en mode Absence."
+        },
+        "away_temperature": {
+          "name": "Température en absence",
+          "description": "Température en °C pour le mode Absence activé ; la valeur existante est conservée si omise."
+        },
+        "preheating_level": {
+          "name": "Niveau de préchauffage",
+          "description": "Niveau de préchauffage facultatif ; conserve le réglage actuel si omis."
+        }
+      }
+    },
+    "set_hvac_mode_home": {
+      "name": "Set HVAC mode for home",
+      "description": "Apply auto, heat or off to all configured rooms in a Tado home.",
+      "fields": {
+        "device_id": {
+          "name": "Tado X Home device"
+        },
+        "hvac_mode": {
+          "name": "HVAC mode"
+        }
+      }
     }
   },
   "entity": {
