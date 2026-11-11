@@ -34,6 +34,36 @@ class DepletedBatteryRegressionTests(unittest.TestCase):
         self.assertIn(".battery_state.lower()", ast.unparse(matches[0]["value_fn"]))
         self.assertEqual("DEPLETED".lower(), "depleted")
 
+    def test_simulated_api_battery_states(self):
+        """Execute the production value_fn with simulated API device data."""
+        from types import SimpleNamespace
+
+        module = ast.parse((COMPONENT / "sensor.py").read_text(encoding="utf-8"))
+        descriptions = []
+        for node in ast.walk(module):
+            if isinstance(node, ast.Call):
+                keys = {kw.arg: kw.value for kw in node.keywords}
+                if isinstance(keys.get("key"), ast.Constant) and keys["key"].value == "battery":
+                    descriptions.append(keys)
+        self.assertEqual(len(descriptions), 1)
+        description = descriptions[0]
+        # Compile only the production lambda, avoiding Home Assistant imports.
+        expression = ast.Expression(body=description["value_fn"])
+        ast.fix_missing_locations(expression)
+        value_fn = eval(compile(expression, str(COMPONENT / "sensor.py"), "eval"), {"__builtins__": {}})
+        options = ast.literal_eval(description["options"])
+        for api_state, expected in (
+            ("NORMAL", "normal"),
+            ("LOW", "low"),
+            ("DEPLETED", "depleted"),
+            (None, None),
+        ):
+            with self.subTest(api_state=api_state):
+                actual = value_fn(SimpleNamespace(battery_state=api_state))
+                self.assertEqual(actual, expected)
+                if actual is not None:
+                    self.assertIn(actual, options)
+
     def test_all_shipped_translations_define_every_battery_state(self):
         paths = [COMPONENT / "strings.json"]
         paths.extend(sorted((COMPONENT / "translations").glob("*.json")))
