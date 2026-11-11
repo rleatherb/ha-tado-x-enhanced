@@ -213,3 +213,10 @@ Following live maintainer testing of the four whole-home actions (successful sta
 
 Prepared a publication-ready candidate from the DEV-005 Marketplace Review development package. Version metadata and public documentation were reconciled with the 25 registered actions, the home profile status sensor, 0.1 °C selectors, the Holiday Mode polling default and the tested Marketplace migration procedure. Public DEV/Fix labels were removed; historical development notes above remain as an audit trail. The API Reset Time timestamp sensor remains unchanged by decision. Candidate status and any outstanding approval or live verification are recorded here rather than in public-facing release documentation.
 
+
+## DEV-006.2 — Accept depleted battery state (unreleased)
+
+- Based on original Exabird issue #72 and PR #87 (also reported as issue #85): Tado may return `DEPLETED` for a battery, while the Enhanced battery ENUM sensor only permitted `normal` and `low`, causing Home Assistant to reject the value.
+- Add `depleted` as a distinct allowed battery state; retain `normal` and `low` and existing sensor IDs/unique IDs. Add corresponding labels to `strings.json` and all five shipped translations (en, de, es, fr, it).
+- Extend `battery_low` binary sensor to report On for both `LOW` and `DEPLETED`, avoiding a false Off when the battery is exhausted. Add simulated production-lambda regression coverage for both sensor types and translation consistency. No Tado API changes, additional polling or entity migration.
+- Implemented on isolated branch `fix/dev-0062-depleted-battery` from `develop`, separately from the frozen DEV-006.1 OpenTherm validation branch. Live Home Assistant testing with an actual depleted battery remains outstanding.

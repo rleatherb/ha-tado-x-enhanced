@@ -549,7 +549,8 @@
         "name": "Batterie",
         "state": {
           "normal": "Normal",
-          "low": "Niedrig"
+          "low": "Niedrig",
+          "depleted": "Leer"
         }
       },
       "device_temperature": {

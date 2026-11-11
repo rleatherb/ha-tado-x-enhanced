@@ -549,7 +549,8 @@
         "name": "Batería",
         "state": {
           "normal": "Normal",
-          "low": "Baja"
+          "low": "Baja",
+          "depleted": "Agotada"
         }
       },
       "device_temperature": {
