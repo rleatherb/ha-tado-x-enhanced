@@ -35,6 +35,24 @@ Published 10 November 2026 after DEV-005 and its documentation/release-readiness
 - Next task: collect, investigate and prioritise candidate work packages before functional editing.
 - No version bump, release date, release-candidate package, Home Assistant functional test or Tado API test is implied by this record.
 
+## DEV-006.1 — OpenTherm domestic hot-water setpoint (design review, 11 November 2026)
+
+Source contribution: PR #13 by @gmagniez (https://github.com/rleatherb/ha-tado-x-enhanced/pull/13), addressing issue #14. The contributor reports a successful live read of a 50 °C setpoint and write to 51 °C on an OpenTherm-connected TR04, confirmed in the Tado app. This is contributor-reported evidence, not maintainer verification.
+
+**Decision:** Accept the feature in principle, but do not merge the PR unchanged. It currently targets `main`, is reported by GitHub as conflicting, and was authored against an earlier baseline. Reconcile changes against the latest `develop` source and preserve v1.3.0 functionality.
+
+**Implementation design:**
+- Add a home-scoped Hot Water Temperature number entity only where the existing DHW state response exposes a valid setpoint and numeric, ordered constraints. Use the existing home-scoped Hops API client and `manualControl` POST; avoid extra periodic requests. Refresh after a successful write.
+- Preserve existing entity unique IDs, configuration entries and the Hot Water feature flag. New entity identity: `{home_id}_dhw_setpoint`. Capability and state must remain isolated per home.
+- Recognise `MANUAL_ON` and `MANUAL_OFF` as raw Hot Water State sensor values. Do not map them to Schedule, Boost or Off without validated semantics. For installations where relay mode control is unsupported, the mode selector must not imply it is usable.
+- Preserve relay-based Boost, Off, Resume Schedule and Hot Water Mode functionality on non-OpenTherm homes. An OpenTherm interface alone does not prove relay controls are unavailable. On setpoint-capable OpenTherm homes, default-disable unverified relay controls for newly registered entities, while respecting existing registrations and explicit user choices. Keep capability handling separate from Hot Water feature-flag reconciliation.
+- Validate finite numeric setpoint/limits, ordered bounds and accepted increments; handle missing or malformed API fields, write failures and read-back cleanly. Document setup-time capability discovery and reload requirements if a setpoint appears later.
+- Update relevant translations, entity documentation and changelog in the development baseline; no release version or date is assigned.
+
+**Validation plan:** Static/mocked checks for both home types, mixed-capability multi-home accounts, entity registry states, feature toggles, API errors and quotas. Maintainer to perform live regression on two non-OpenTherm homes, especially existing DHW controls and automations. Request contributor to verify the corrected development build on OpenTherm hardware, including setpoint read/write, reload and default-disabled controls. Do not claim live OpenTherm validation of the revised build until reported.
+
+No functional code has been changed or approved for release by this design record.
+
 ## v1.2.0 release record
 
 Published 9 November 2026 after completion of DEV-004. The release includes 20 registered actions, coordinator-driven supplementary Holiday Mode polling (rather than an independent Holiday Mode periodic timer), the 5× default multiplier, and observed and theoretical daily API usage estimates. The published v1.2.0 tag must remain unchanged. Refer to `CHANGELOG.md` for the public release record and its validation limitations.
