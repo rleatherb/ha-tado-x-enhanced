@@ -8,6 +8,18 @@ The project is independently maintained and is derived from the original Tado X 
 
 **[Readme](README.md)** · [Report an issue](https://github.com/rleatherb/ha-tado-x-enhanced/issues) · [Releases](https://github.com/rleatherb/ha-tado-x-enhanced/releases)
 
+## [Unreleased] — DEV-006.1 development build
+
+### Added
+
+- OpenTherm-compatible domestic hot-water setpoint number entity with validated API limits and whole-degree manual-control writes; no extra periodic polling.
+- Recognition of raw `MANUAL_ON` and `MANUAL_OFF` DHW states.
+
+### Compatibility and validation
+
+- New relay-oriented hot-water controls default to disabled on setpoint-capable OpenTherm homes; existing entity registrations are preserved. Non-OpenTherm controls are intended to remain unchanged.
+- Static and standalone tests are not equivalent to Home Assistant or live Tado validation. The contributor reported a successful live OpenTherm API read/write for the original PR; this revised build has not yet been live-tested.
+
 ## [1.3.0] - 2026-11-10
 
 ### Added

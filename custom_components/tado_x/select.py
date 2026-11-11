@@ -91,7 +91,7 @@ async def async_setup_entry(
 
     # Update entity enabled/disabled state based on feature flags
     for entity_id, entity_entry in list(entity_registry.entities.items()):
-        if entity_entry.platform != DOMAIN:
+        if entity_entry.platform != DOMAIN or entity_entry.domain != "select":
             continue
 
         if entity_entry.config_entry_id != entry.entry_id:
@@ -102,6 +102,15 @@ async def async_setup_entry(
             continue
 
         if not entity_entry.unique_id:
+            continue
+
+        if (
+            coordinator.enable_hot_water
+            and coordinator.data
+            and coordinator.data.dhw_relay_actions_unverified
+            and entity_entry.unique_id.endswith("_dhw_mode")
+            and entity_entry.disabled_by == er.RegistryEntryDisabler.INTEGRATION
+        ):
             continue
 
         # Check if this entity matches a disabled feature
@@ -213,6 +222,8 @@ class TadoXDhwModeSelect(CoordinatorEntity[TadoXDataUpdateCoordinator], SelectEn
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{coordinator.home_id}_{description.key}"
+        if coordinator.data and coordinator.data.dhw_relay_actions_unverified:
+            self._attr_entity_registry_enabled_default = False
 
     @property
     def device_info(self) -> DeviceInfo:

@@ -1222,6 +1222,16 @@ class TadoXApi:
         )
         return result if isinstance(result, dict) else {}
 
+    async def set_domestic_hot_water_temperature(self, temperature: int) -> None:
+        """Set a supported domestic hot-water setpoint through Hops."""
+        if not self._home_id:
+            raise TadoXApiError("Home ID not set")
+        await self._request(
+            "POST",
+            f"{TADO_HOPS_API_URL}/homes/{self._home_id}/programmer/domesticHotWater/manualControl",
+            json_data={"setpoint": temperature},
+        )
+
     async def boost_domestic_hot_water(self) -> None:
         """Boost domestic hot water."""
         if not self._home_id:

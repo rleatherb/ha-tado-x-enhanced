@@ -194,3 +194,9 @@ When Holiday Mode is active, the hot-water API may report `HOLIDAY_MODE_OFF`. **
 ### Home schedule profile status
 
 The **Schedule profile status** sensor belongs to the Tado X Home device and summarises the currently configured rooms in that home. If all rooms match the same profile, that profile name is shown; different recognised profiles give `Mixed`; if any room is `Custom`, the home reads `Custom` (taking precedence over `Mixed`). The sensor follows existing profile comparison updates and makes no additional Tado API requests. Rooms discovered after setup are excluded until an integration reload.
+
+### OpenTherm hot-water setpoint (development)
+
+Where the existing DHW state response provides a finite numeric setpoint within valid numeric `setpointConstraints`, the home device gains **Hot Water Temperature** (`number`), using whole-degree Hops manual-control writes. Missing setpoint data at initial setup means a reload may be needed after capability becomes available. This feature does not introduce periodic API calls.
+
+On homes exposing both a DHW setpoint and `thermInterfaceType: OPENTHERM`, new relay-style hot-water buttons and **Hot Water Mode** are disabled by default, while existing registered entities and explicit user settings are preserved. This is a conservative heuristic, not a universal relay-capability test. The Hot Water State sensor reports `MANUAL_ON` and `MANUAL_OFF` verbatim. These states have no verified equivalent in the relay-oriented Hot Water Mode selector.

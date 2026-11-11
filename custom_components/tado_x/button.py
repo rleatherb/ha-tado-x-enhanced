@@ -19,6 +19,8 @@ from .coordinator import TadoXDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+_RELAY_DHW_KEYS = frozenset({"boost_hot_water", "disable_hot_water", "resume_hot_water_schedule"})
+
 
 @dataclass(frozen=True, kw_only=True)
 class TadoXButtonEntityDescription(ButtonEntityDescription):
@@ -107,6 +109,18 @@ async def async_setup_entry(
         if not entity_entry.unique_id:
             continue
         
+        # A new OpenTherm relay entity is integration-disabled by default.
+        # Preserve that default while Hot Water is enabled, but allow the
+        # normal feature-flag path to act when Hot Water is disabled.
+        if (
+            coordinator.enable_hot_water
+            and coordinator.data
+            and coordinator.data.dhw_relay_actions_unverified
+            and entity_entry.disabled_by == er.RegistryEntryDisabler.INTEGRATION
+            and any(entity_entry.unique_id.endswith(f"_{key}") for key in _RELAY_DHW_KEYS)
+        ):
+            continue
+
         # Check if this entity matches a disabled feature
         should_be_disabled = False
         for feature_flag, entity_keys in FEATURE_ENTITY_MAP.items():
@@ -152,6 +166,12 @@ class TadoXButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{coordinator.home_id}_{description.key}"
+        if (
+            description.key in _RELAY_DHW_KEYS
+            and coordinator.data
+            and coordinator.data.dhw_relay_actions_unverified
+        ):
+            self._attr_entity_registry_enabled_default = False
 
     @property
     def device_info(self) -> DeviceInfo:

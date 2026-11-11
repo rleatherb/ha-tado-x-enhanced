@@ -1,6 +1,8 @@
 """DataUpdateCoordinator for Tado X."""
 from __future__ import annotations
 
+import math
+
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -147,6 +149,10 @@ class TadoXData:
     has_flow_temp_control: bool = False
     # Domestic hot water state (e.g., OFF, SCHEDULE_ON, SCHEDULE_OFF, BOOST)
     dhw_state: str | None = None
+    dhw_setpoint: float | None = None
+    dhw_setpoint_min: float | None = None
+    dhw_setpoint_max: float | None = None
+    dhw_relay_actions_unverified: bool = False
     dhw_boost_ends: str | None = None
     dhw_next_schedule_change: str | None = None
 
@@ -306,11 +312,32 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
 
             # Get domestic hot water state (optional)
             dhw_state = None
+            dhw_setpoint = None
+            dhw_setpoint_min = None
+            dhw_setpoint_max = None
             dhw_boost_ends = None
             dhw_next_schedule_change = None
             if self.enable_hot_water:
                 dhw_state_response = await self.api.get_domestic_hot_water_state()
                 dhw_state = dhw_state_response.get("state")
+                constraints = dhw_state_response.get("setpointConstraints")
+                if isinstance(constraints, dict):
+                    raw_values = (
+                        dhw_state_response.get("setpoint"),
+                        constraints.get("min"),
+                        constraints.get("max"),
+                    )
+                    if all(
+                        isinstance(value, (int, float))
+                        and not isinstance(value, bool)
+                        and math.isfinite(value)
+                        for value in raw_values
+                    ):
+                        current, minimum, maximum = map(float, raw_values)
+                        if minimum <= current <= maximum:
+                            dhw_setpoint = current
+                            dhw_setpoint_min = minimum
+                            dhw_setpoint_max = maximum
                 if dhw_state == "BOOST":
                     dhw_boost_ends = dhw_state_response.get("nextStateChange")
                 elif dhw_state in ("SCHEDULE_ON", "SCHEDULE_OFF"):
@@ -347,8 +374,22 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
                 presence_locked=presence_locked,
                 weather=weather,
                 dhw_state=dhw_state,
+                dhw_setpoint=dhw_setpoint,
+                dhw_setpoint_min=dhw_setpoint_min,
+                dhw_setpoint_max=dhw_setpoint_max,
                 dhw_boost_ends=dhw_boost_ends,
                 dhw_next_schedule_change=dhw_next_schedule_change,
+            )
+
+            # This is a conservative heuristic, not proof of absent relay hardware.
+            # Evaluate independently for each configured home.
+            data.dhw_relay_actions_unverified = (
+                data.dhw_setpoint is not None
+                and any(
+                    isinstance(device, dict)
+                    and device.get("thermInterfaceType") == "OPENTHERM"
+                    for device in (rooms_devices_data.get("otherDevices") or [])
+                )
             )
 
             # Process rooms, devices and Tado manual-control defaults

@@ -699,6 +699,9 @@
       }
     },
     "number": {
+      "dhw_setpoint": {
+        "name": "Warmwassertemperatur"
+      },
       "max_flow_temperature": {
         "name": "Max. Vorlauftemperatur"
       },
