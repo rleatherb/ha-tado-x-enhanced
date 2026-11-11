@@ -53,6 +53,8 @@ Source contribution: PR #13 by @gmagniez (https://github.com/rleatherb/ha-tado-x
 
 No functional code has been changed or approved for release by this design record.
 
+**Maintainer live regression (11 November 2026):** The DEV-006.1 development ZIP was installed in both production non-OpenTherm homes. The maintainer reported 10/10 checks passed: Hot Water State, Hot Water Mode, Boost, Off, Resume Schedule, retained DHW entity IDs, absence of unexpected setpoint entities, climate and schedules, Holiday Mode and schedule profiles, and no new Tado X log errors or warnings. This is a functional non-OpenTherm regression result, not live OpenTherm verification. The contributor's updated-build verification is still pending.
+
 ## v1.2.0 release record
 
 Published 9 November 2026 after completion of DEV-004. The release includes 20 registered actions, coordinator-driven supplementary Holiday Mode polling (rather than an independent Holiday Mode periodic timer), the 5× default multiplier, and observed and theoretical daily API usage estimates. The published v1.2.0 tag must remain unchanged. Refer to `CHANGELOG.md` for the public release record and its validation limitations.
