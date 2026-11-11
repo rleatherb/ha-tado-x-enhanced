@@ -64,6 +64,34 @@ class DepletedBatteryRegressionTests(unittest.TestCase):
                 if actual is not None:
                     self.assertIn(actual, options)
 
+    def test_simulated_binary_battery_low_states(self):
+        """Exercise the production battery-low lambda with simulated Tado states."""
+        from types import SimpleNamespace
+
+        module = ast.parse((COMPONENT / "binary_sensor.py").read_text(encoding="utf-8"))
+        descriptions = []
+        for node in ast.walk(module):
+            if not isinstance(node, ast.Call):
+                continue
+            keys = {kw.arg: kw.value for kw in node.keywords}
+            if isinstance(keys.get("key"), ast.Constant) and keys["key"].value == "battery_low":
+                descriptions.append(keys)
+        self.assertEqual(len(descriptions), 1)
+        expression = ast.Expression(body=descriptions[0]["value_fn"])
+        ast.fix_missing_locations(expression)
+        value_fn = eval(
+            compile(expression, str(COMPONENT / "binary_sensor.py"), "eval"),
+            {"__builtins__": {}},
+        )
+        for api_state, expected in (
+            ("NORMAL", False),
+            ("LOW", True),
+            ("DEPLETED", True),
+            (None, None),
+        ):
+            with self.subTest(api_state=api_state):
+                self.assertIs(value_fn(SimpleNamespace(battery_state=api_state)), expected)
+
     def test_all_shipped_translations_define_every_battery_state(self):
         paths = [COMPONENT / "strings.json"]
         paths.extend(sorted((COMPONENT / "translations").glob("*.json")))
