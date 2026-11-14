@@ -35,6 +35,24 @@ Published 10 November 2026 after DEV-005 and its documentation/release-readiness
 - Next task: collect, investigate and prioritise candidate work packages before functional editing.
 - No version bump, release date, release-candidate package, Home Assistant functional test or Tado API test is implied by this record.
 
+## DEV-006.3 — Room and whole-home schedule refresh actions (proposed, 14 November 2026)
+
+**Status:** Accepted for inclusion in the DEV-006 development specification; design and implementation pending. No runtime code changes are authorised by this specification entry.
+
+**Purpose:** Expose the existing Refresh Schedule button behaviour as callable Home Assistant actions, for consistent use in scripts and automations alongside room-level and whole-home schedule-profile save/restore actions.
+
+**Requested functionality:**
+- **Room-level Refresh Schedule action:** Accept a specific room using the established room-targeting conventions of existing schedule actions, including unambiguous home selection when multiple Tado homes contain overlapping room IDs. Reuse the current room Refresh Schedule button's implementation and refresh semantics rather than duplicate the refresh logic.
+- **Whole-home Refresh Schedule action:** Accept a selected Tado home using the same home-selection conventions as existing whole-home actions. Refresh schedules for all relevant rooms within that home, without affecting other homes. Support orchestration alongside whole-home schedule-profile save/restore actions.
+
+**Implementation and compatibility constraints:**
+- Retain the existing Refresh Schedule button and all current action interfaces, entity IDs, unique IDs, configuration entries and profile behaviour.
+- Prefer shared coordinator/schedule-refresh functionality; avoid independent polling loops, duplicate API requests and unnecessary quota consumption. Assess whether sequential/batched refresh is needed for larger homes.
+- Define clear action schemas, room/home resolution, error handling and Home Assistant action descriptions; update translations and public action documentation when implemented.
+- Validate single-home and multi-home cases, including overlapping room IDs, room and home targeting, refresh completion, errors and API-call behaviour.
+
+**Release handling:** Candidate for the next release, subject to implementation, validation and the mandatory pre-release documentation review. No release version or date is assigned here.
+
 ## DEV-006.1 — OpenTherm domestic hot-water setpoint (design review, 11 November 2026)
 
 Source contribution: PR #13 by @gmagniez (https://github.com/rleatherb/ha-tado-x-enhanced/pull/13), addressing issue #14. The contributor reports a successful live read of a 50 °C setpoint and write to 51 °C on an OpenTherm-connected TR04, confirmed in the Tado app. This is contributor-reported evidence, not maintainer verification.
