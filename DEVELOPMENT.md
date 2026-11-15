@@ -45,6 +45,14 @@ Published 10 November 2026 after DEV-005 and its documentation/release-readiness
 - **Room-level Refresh Schedule action:** Accept a specific room using the established room-targeting conventions of existing schedule actions, including unambiguous home selection when multiple Tado homes contain overlapping room IDs. Reuse the current room Refresh Schedule button's implementation and refresh semantics rather than duplicate the refresh logic.
 - **Whole-home Refresh Schedule action:** Accept a selected Tado home using the same home-selection conventions as existing whole-home actions. Refresh schedules for all relevant rooms within that home, without affecting other homes. Support orchestration alongside whole-home schedule-profile save/restore actions.
 
+**Home-device dashboard controls (refinement, 15 November 2026; specification only):**
+- Add one **Refresh All Room Schedules** button to each Tado home device, invoking the same underlying whole-home schedule refresh functionality as the new action. Keep existing per-room Refresh Schedule buttons. The home button must affect only its own home and must not initiate extra background polling.
+- Add home-device controls to invoke the existing `save_schedule_profile_home` and `restore_schedule_profile_home` actions. Both actions require an explicit existing profile name, which a standard Home Assistant button cannot accept as an argument.
+- **Proposed design for review during implementation:** a home-scoped **Schedule Profile** select entity listing that home's existing profile names, accompanied by **Save Home Schedule Profile** and **Restore Home Schedule Profile** buttons acting on the selected name. Do not assume the room-level selectors provide the same home-wide selection; preserve them unchanged.
+- Ensure the selected profile is visible and unambiguous, validate that it belongs to the target home, and provide clear failures and appropriate safeguards for potentially disruptive whole-home restores. Reuse existing save/restore action handlers; do not duplicate profile logic or create new API polling.
+- Maintain independent controls per Tado home, stable existing entity/action identities, and compatibility with custom profile names. Validate dashboard use, initial selection, reload, renamed/deleted profiles, error handling and mixed multi-home accounts.
+- The selector-and-buttons design is a proposal, **not yet an approved implementation detail**. Resolve its interaction and safety semantics in the full DEV-006 development review before building it.
+
 **Implementation and compatibility constraints:**
 - Retain the existing Refresh Schedule button and all current action interfaces, entity IDs, unique IDs, configuration entries and profile behaviour.
 - Prefer shared coordinator/schedule-refresh functionality; avoid independent polling loops, duplicate API requests and unnecessary quota consumption. Assess whether sequential/batched refresh is needed for larger homes.
