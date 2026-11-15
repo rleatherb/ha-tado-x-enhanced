@@ -116,9 +116,11 @@ async def async_setup_entry(
             coordinator.enable_hot_water
             and coordinator.data
             and coordinator.data.dhw_relay_actions_unverified
-            and entity_entry.disabled_by == er.RegistryEntryDisabler.INTEGRATION
-            and any(entity_entry.unique_id.endswith(f"_{key}") for key in _RELAY_DHW_KEYS)
+            and any(entity_entry.unique_id == f"{coordinator.home_id}_{key}" for key in _RELAY_DHW_KEYS)
         ):
+            # Do not undo a default integration disable for OpenTherm.
+            # Equally, do not override a previously enabled registry entry:
+            # it may represent an explicit existing user choice.
             continue
 
         # Check if this entity matches a disabled feature
