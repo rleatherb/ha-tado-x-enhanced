@@ -82,9 +82,9 @@ for key in ('boost_hot_water', 'disable_hot_water', 'resume_hot_water_schedule')
             'entity_entry': SimpleNamespace(unique_id=f'101_{key}', disabled_by=disabled_by),
             '_RELAY_DHW_KEYS': frozenset({'boost_hot_water','disable_hot_water','resume_hot_water_schedule'}),
         }
-        assert eval(guard_expr, {'__builtins__': {'any': any}}, scope), (key, disabled_by)
+        assert eval(guard_expr, {'__builtins__': {'any': any}, **scope}), (key, disabled_by)
 for unique_id in ('102_resume_hot_water_schedule', '101_resume_schedules'):
     scope['entity_entry'] = SimpleNamespace(unique_id=unique_id, disabled_by='integration')
-    assert not eval(guard_expr, {'__builtins__': {'any': any}}, scope), unique_id
+    assert not eval(guard_expr, {'__builtins__': {'any': any}, **scope}), unique_id
 
 print('DEV-006.1 standalone checks passed (not Home Assistant integration tests)')
