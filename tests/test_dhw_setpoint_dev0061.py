@@ -55,4 +55,36 @@ for platform in ('button.py','select.py'):
     assert '_attr_entity_registry_enabled_default = False' in s
 assert '"MANUAL_ON", "MANUAL_OFF"' in (root/'sensor.py').read_text()
 assert '{coordinator.home_id}_dhw_setpoint' in (root/'number.py').read_text()
+
+# Verify actual relay-registry reconciliation condition against all three keys.
+button_tree = ast.parse((root / 'button.py').read_text())
+setup = next(n for n in button_tree.body if isinstance(n, ast.AsyncFunctionDef) and n.name == 'async_setup_entry')
+relay_guard = next(
+    n for n in ast.walk(setup)
+    if isinstance(n, ast.If)
+    and 'dhw_relay_actions_unverified' in ast.unparse(n.test)
+)
+guard = eval(
+    compile(ast.fix_missing_locations(ast.Expression(body=relay_guard.test)), '<button registry guard>', 'eval'),
+    {'__builtins__': {'any': any}},
+    {'coordinator': SimpleNamespace(enable_hot_water=True, home_id=101,
+                                    data=SimpleNamespace(dhw_relay_actions_unverified=True)),
+     'entity_entry': SimpleNamespace(unique_id='101_boost_hot_water'),
+     '_RELAY_DHW_KEYS': frozenset({'boost_hot_water','disable_hot_water','resume_hot_water_schedule'})},
+)
+assert guard
+guard_expr = compile(ast.fix_missing_locations(ast.Expression(body=relay_guard.test)), '<button registry guard>', 'eval')
+for key in ('boost_hot_water', 'disable_hot_water', 'resume_hot_water_schedule'):
+    for disabled_by in (None, 'integration'):
+        scope = {
+            'coordinator': SimpleNamespace(enable_hot_water=True, home_id=101,
+                                           data=SimpleNamespace(dhw_relay_actions_unverified=True)),
+            'entity_entry': SimpleNamespace(unique_id=f'101_{key}', disabled_by=disabled_by),
+            '_RELAY_DHW_KEYS': frozenset({'boost_hot_water','disable_hot_water','resume_hot_water_schedule'}),
+        }
+        assert eval(guard_expr, {'__builtins__': {'any': any}}, scope), (key, disabled_by)
+for unique_id in ('102_resume_hot_water_schedule', '101_resume_schedules'):
+    scope['entity_entry'] = SimpleNamespace(unique_id=unique_id, disabled_by='integration')
+    assert not eval(guard_expr, {'__builtins__': {'any': any}}, scope), unique_id
+
 print('DEV-006.1 standalone checks passed (not Home Assistant integration tests)')
