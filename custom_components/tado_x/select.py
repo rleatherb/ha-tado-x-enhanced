@@ -381,7 +381,7 @@ class TadoXScheduleProfileSelect(CoordinatorEntity[TadoXDataUpdateCoordinator], 
 
     async def async_select_option(self, option):
         if option == "Custom":
-            raise HomeAssistantError("Custom is a status, not a saved schedule")
+            return  # Custom is a status; selecting it does not restore a profile.
         await self.coordinator.schedule_profile_manager.restore(self._room_id, option)
         self.async_write_ha_state()
 
@@ -401,7 +401,7 @@ class TadoXSaveScheduleProfileSelect(TadoXScheduleProfileSelect):
 
     async def async_select_option(self, option):
         if option == "Custom":
-            raise HomeAssistantError("Custom is a status, not a profile name")
+            return  # Custom is a status; selecting it does not save a profile.
         manager = self.coordinator.schedule_profile_manager
         if option not in manager.names(self._room_id):
             raise HomeAssistantError(f"Unknown schedule profile: {option}")
