@@ -53,6 +53,14 @@ Published 10 November 2026 after DEV-005 and its documentation/release-readiness
 **Observed behaviour and validation:**
 - A user-provided Home Assistant history graph (12–17 November 2026) shows daily resets and infrequent upward steps, with no obvious intraday downward revisions. A state-history plot alone cannot distinguish unchanged Minder data from infrequent polling, nor guarantee the last pre-midnight reading is final.
 - Do not increase API polling based on the graph. Validate real response values, home/room semantics, midnight rollover, caching, feature disabled, two-home isolation, missing/invalid summary data, and historical/statistics compatibility.
+**Retrospective Minder comparison — decision gate for an optional Yesterday sensor:**
+- As a **read-only validation exercise**, request running-time data from Minder for several completed dates (using the existing date-range API), preferably including days for which Home Assistant has a final pre-midnight `Heating Time Today` value and an independent History Stats duration based on heating power > 0%.
+- For each selected room and date, compare: (1) the last `Heating Time Today` reading recorded before midnight, (2) the retrospective Minder result for that completed day, and (3) the History Stats estimate. Record the absolute and percentage differences, time of last reading, and any evidence of late server updates. Do not assume History Stats is a perfect ground truth.
+- Check whether retrospective Minder totals are materially more complete than the last pre-midnight readings. **If differences are absent or insignificant, do not implement a Yesterday sensor**; rely on existing Home Assistant history/statistics.
+- Only if a repeatable, meaningful improvement is demonstrated should a `Heating Time Yesterday` sensor be proposed for separate review, with explicit scope (room/home), update timing, quota impact, handling of unavailable data, and user approval **before implementation**. Do not add routine historical API polling as part of DEV-006.4 by default.
+- During the same read-only exercise, verify the actual home-level Minder summary field and its semantics (particularly whether it represents simultaneous home heating time rather than a sum of zone durations), before implementing the agreed home `Heating Time Today` sensor.
+- No correction or interpolation of today's reported running time is proposed; retain existing polling and source values.
+
 - Keep changes scoped to DEV-006 and include public documentation review before any release candidate.
 
 ## DEV-006.3 — Room and whole-home schedule refresh actions (proposed, 14 November 2026)
