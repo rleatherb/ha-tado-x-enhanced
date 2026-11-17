@@ -35,6 +35,26 @@ Published 10 November 2026 after DEV-005 and its documentation/release-readiness
 - Next task: collect, investigate and prioritise candidate work packages before functional editing.
 - No version bump, release date, release-candidate package, Home Assistant functional test or Tado API test is implied by this record.
 
+## DEV-006.4 — Heating Time Today precision and home sensor (specified, 17 November 2026)
+
+**Status:** Approved for the DEV-006 implementation specification; no runtime code changes in this documentation update.
+
+**Existing room sensors:**
+- Retain the existing `heating_time_today` room sensors, their entity/unique IDs, hours unit, duration device class and `SensorStateClass.TOTAL`. Do **not** change to `TOTAL_INCREASING`.
+- Change the conversion from Minder's `runningTimeInSeconds` to hours rounded to **two decimal places** instead of one. Do not change the underlying raw value or polling frequency.
+- Preserve the existing optional Running Times feature toggle and multi-home/overlapping room-ID handling.
+
+**New home sensor:**
+- Add **Heating Time Today** to each Tado home device, using the **whole-home running-time total returned by the existing Minder response**, not a sum of room durations (which can overlap).
+- Use hours rounded to **two decimal places**, `SensorDeviceClass.DURATION`, `SensorStateClass.TOTAL`, and the existing running-times feature toggle. Assign a stable home-scoped unique ID and provide appropriate translations.
+- Reuse the already-fetched/cached running-times response. **No extra Minder API requests, new polling loop or increased polling frequency.** Check the actual response shape and semantics of the home total before implementation; the source's example structure contains `summary.totalRunningTimeInSeconds`, but this is not yet verified against live responses.
+- Preserve existing entities, dashboard behaviour and long-term statistics continuity. Document that the home duration measures the Minder-reported home total, not a sum of per-room durations.
+
+**Observed behaviour and validation:**
+- A user-provided Home Assistant history graph (12–17 November 2026) shows daily resets and infrequent upward steps, with no obvious intraday downward revisions. A state-history plot alone cannot distinguish unchanged Minder data from infrequent polling, nor guarantee the last pre-midnight reading is final.
+- Do not increase API polling based on the graph. Validate real response values, home/room semantics, midnight rollover, caching, feature disabled, two-home isolation, missing/invalid summary data, and historical/statistics compatibility.
+- Keep changes scoped to DEV-006 and include public documentation review before any release candidate.
+
 ## DEV-006.3 — Room and whole-home schedule refresh actions (proposed, 14 November 2026)
 
 **Status:** Accepted for inclusion in the DEV-006 development specification; design and implementation pending. No runtime code changes are authorised by this specification entry.
