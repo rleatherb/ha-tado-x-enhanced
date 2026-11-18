@@ -35,6 +35,27 @@ Published 10 November 2026 after DEV-005 and its documentation/release-readiness
 - Next task: collect, investigate and prioritise candidate work packages before functional editing.
 - No version bump, release date, release-candidate package, Home Assistant functional test or Tado API test is implied by this record.
 
+## DEV-006.5 — Coordinator health and state-refresh reliability (issue #16; specified 18 November 2026)
+
+**Status:** Specification only; investigate and design before implementing. Related report: https://github.com/rleatherb/ha-tado-x-enhanced/issues/16. Reported symptom: Home Assistant temperature/heating-demand readings may remain stale following heating changes, while reloading the integration brings them up to date. The cause is **not yet established**; do not attribute it definitively to Tado or to this integration.
+
+**Objectives and constraints:**
+- Improve detection and, where a verified defect permits, prevention of stale coordinator state **without increasing normal Tado API request volume**.
+- Preserve existing coordinator cadence, multi-home isolation, entity IDs, API quota handling and all control actions. Do not introduce automatic integration reloads, independent recovery polling, repeated post-command API requests, or fabricated heating demand.
+- Distinguish a successful fresh room-state API fetch from a cached snapshot reused after HTTP 429, a failed fetch, and a successfully published coordinator update. Ensure cached data is not incorrectly described as fresh.
+- Record per-home timestamps for last successful room-state fetch and last published coordinator update, plus last error/failure and rate-limit state. Use monotonic time for local elapsed-time checks and suitable timestamps for diagnostic display. Avoid sensitive data in logs.
+- Consider a **home-device Coordinator Health diagnostic sensor** with statuses such as Healthy, Delayed, Failed and Rate limited, plus concise attributes; assess whether the sensor adds sufficient value and define unambiguous state transitions before implementation.
+- Add a lightweight local watchdog for missed/overdue update cycles with thresholds proportional to the configured main polling interval. Throttle warnings, account for Home Assistant shutdown/reload, in-flight updates and deliberate rate-limit backoff, and do not trigger extra API calls.
+- Validate expected home/room snapshot completeness without treating normal room changes or transient API behaviour as grounds for destructive entity changes. A stable room-state fingerprint can aid diagnosis, but **unchanged temperature/heating demand alone is not an error**.
+- Instrument the **existing** post-command refresh path to identify failed refreshes and whether new setpoints/modes appear in the returned room state. Do not require immediate changes in heating power and do not add verification API calls.
+- Investigate the actual cause of issue #16. If a reproducible coordinator/entity-notification defect is identified, fix it within DEV-006.5 with targeted tests; otherwise retain diagnostics and explicitly report the remaining uncertainty.
+
+**Validation and documentation:**
+- Review the published v1.3.0 coordinator, climate entities, API error/rate-limit handling, option-driven polling and setup/reload paths before changing code.
+- Test normal polling, unchanged but valid room states, delayed/failed requests, 429 cached responses, post-command refresh, reload/shutdown, polling interval changes, and independent behaviour for multiple homes with overlapping room IDs.
+- Confirm zero additional Tado API requests in normal operation; include tests for warning throttling and status transitions. Distinguish static/simulated validation from live Home Assistant/Tado evidence.
+- Update relevant entity descriptions, translations, documentation and release notes if an entity or behaviour is added. Complete the mandatory public-documentation review before release.
+
 ## DEV-006.4 — Heating Time Today precision and home sensor (specified, 17 November 2026)
 
 **Status:** Approved for the DEV-006 implementation specification; no runtime code changes in this documentation update.
