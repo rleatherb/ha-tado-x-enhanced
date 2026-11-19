@@ -731,6 +731,9 @@
       },
       "refresh_holiday_mode": {
         "name": "Urlaubsmodus aktualisieren"
+      },
+      "refresh_schedule_home": {
+        "name": "Alle Raumzeitpläne aktualisieren"
       }
     },
     "select": {
@@ -757,6 +760,12 @@
           "MANUAL": "Manuell",
           "NEXT_TIME_BLOCK": "Nächster Zeitblock"
         }
+      },
+      "restore_schedule_profile_home": {
+        "name": "Alle Raumzeitpläne wiederherstellen"
+      },
+      "save_schedule_profile_home": {
+        "name": "Alle Raumzeitpläne speichern als"
       }
     },
     "device_tracker": {
