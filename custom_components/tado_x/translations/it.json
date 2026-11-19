@@ -731,6 +731,9 @@
       },
       "refresh_holiday_mode": {
         "name": "Aggiorna modalità vacanza"
+      },
+      "refresh_schedule_home": {
+        "name": "Aggiorna tutte le programmazioni delle stanze"
       }
     },
     "select": {
@@ -757,6 +760,12 @@
           "MANUAL": "Manuale",
           "NEXT_TIME_BLOCK": "Prossimo blocco orario"
         }
+      },
+      "restore_schedule_profile_home": {
+        "name": "Ripristina tutte le programmazioni delle stanze"
+      },
+      "save_schedule_profile_home": {
+        "name": "Salva tutte le programmazioni delle stanze come"
       }
     },
     "device_tracker": {
