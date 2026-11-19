@@ -1,3 +1,28 @@
+refresh_schedule:
+  name: Refresh schedule for room
+  description: Read the selected room's live Home schedule, update its saved-profile comparison, and refresh the home state. Does not change the Tado schedule.
+  fields:
+    entity_id:
+      name: Tado X room climate entity
+      description: Select a native Tado X climate entity to identify the room and home unambiguously.
+      required: true
+      selector:
+        entity:
+          integration: tado_x
+          domain: climate
+
+refresh_schedule_home:
+  name: Refresh schedules for home
+  description: Sequentially refresh every eligible room's Home schedule and profile comparison in the selected Tado home, followed by one coordinator refresh. Reports partial failures.
+  fields:
+    device_id:
+      name: Tado X Home device
+      description: Optional for one configured home; required for multiple homes. Select the Home device, not a room or physical device.
+      required: false
+      selector:
+        device:
+          integration: tado_x
+
 # Services for Tado X integration
 
 set_temperature_offset:
