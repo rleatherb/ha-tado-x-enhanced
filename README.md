@@ -83,7 +83,7 @@ A room-specific saved profile takes precedence over the home-wide default when r
 
 The integration initially captures the current room schedule as **Normal** if that room profile is missing. The home-level **Schedule profile status** sensor reports the common profile, `Mixed` for different recognised profiles, or `Custom` if any room is Custom. The **Custom** indication is based on the latest comparison; when automatic checks are off, use **Refresh Schedule** to detect changes made outside Home Assistant. Additional profile names can be created separately for each home.
 
-**Saving home-wide room schedules** reads the current Home schedule and Away settings directly from Tado for each eligible room. There is no need to press **Refresh all room schedules** first; doing so would use additional API requests without improving the saved data's freshness. If a room's live schedule or Away settings cannot be retrieved, that room's stored profile is not overwritten.
+**Saving home-wide room schedules** reads the current Home schedule and Away settings directly from Tado for each eligible room. There is no need to press **Refresh all room schedules** first; doing so would use additional API calls.
 
 ## Actions
 
