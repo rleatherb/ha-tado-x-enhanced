@@ -169,6 +169,29 @@ class TadoXButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
         await self.coordinator.async_request_refresh()
 
 
+async def refresh_room_schedule(
+    coordinator: TadoXDataUpdateCoordinator, room_id: int
+) -> None:
+    """Fetch and compare a room schedule without a coordinator refresh.
+
+    Shared by room buttons and DEV-006.3 actions. Callers decide when to
+    refresh coordinator state, so a whole-home operation can refresh once.
+    """
+    manager = coordinator.schedule_profile_manager
+    async with manager._lock(room_id):
+        live = await coordinator.api.get_zone_schedule(room_id)
+        if not isinstance(live, dict) or not isinstance(live.get("schedule"), list):
+            raise HomeAssistantError("Tado did not return a valid Home schedule")
+        try:
+            await manager.check(room_id, live)
+        except Exception as err:
+            _LOGGER.warning(
+                "Schedule refreshed for home=%s room=%s; "
+                "full profile comparison unavailable: %s",
+                coordinator.home_id, room_id, err,
+            )
+
+
 class TadoXScheduleRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
     """Button to refresh a room's smart schedule on demand (no polling)."""
 
@@ -202,19 +225,9 @@ class TadoXScheduleRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinator], 
         )
 
     async def async_press(self) -> None:
-        """Read the Home schedule and report profile-comparison limitations."""
-        manager = self.coordinator.schedule_profile_manager
-        async with manager._lock(self._room_id):
-            live = await self.coordinator.api.get_zone_schedule(self._room_id)
-            if not isinstance(live, dict) or not isinstance(live.get("schedule"), list):
-                raise HomeAssistantError("Tado did not return a valid Home schedule")
-            try:
-                await manager.check(self._room_id, live)
-            except Exception as err:
-                _LOGGER.warning("Schedule refreshed for home=%s room=%s; full profile comparison unavailable: %s", self.coordinator.home_id, self._room_id, err)
-            # Poll the current room state immediately so next-change sensors
-            # and climate attributes reflect Tado's latest configuration.
-            await self.coordinator.async_request_refresh()
+        """Refresh this room's schedule and then its coordinator state."""
+        await refresh_room_schedule(self.coordinator, self._room_id)
+        await self.coordinator.async_request_refresh()
 
 
 class TadoXHolidayRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
