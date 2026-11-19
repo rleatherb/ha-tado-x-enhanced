@@ -104,6 +104,10 @@ A room-specific profile takes precedence over its matching home-wide default on 
 
 The integration initially captures the current room schedule as **Normal** if that room profile is missing. The **Custom** indication is based on the most recent comparison; when automatic checks are off, use **Refresh Schedule** to detect changes made outside Home Assistant.
 
+### Home-device schedule controls
+
+The Tado X Home device also offers **Refresh all room schedules** (button), **Restore all room schedules** (selector), and **Save all room schedules as** (selector). These operate on all eligible rooms in that home, not on individual room devices. Save reads each room's current Home schedule and Away settings directly from the Tado API before storing them; no prior manual refresh is needed. Restore applies both. See [Heating Schedules](SCHEDULES.md) for the profile selection, `Custom` no-op and partial-failure behaviour.
+
 ## Tado X Devices
 
 Applies to supported Tado X devices, including Radiator Valve X, Temperature Sensor X, Wireless Receiver X, Wired Smart Thermostat X and Bridge X
