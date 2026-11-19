@@ -71,6 +71,8 @@ ATTR_TEMPERATURE: Final = "temperature"
 ATTR_DURATION: Final = "duration"
 ATTR_TERMINATION_TYPE: Final = "termination_type"
 
+SERVICE_REFRESH_SCHEDULE: Final = "refresh_schedule"
+SERVICE_REFRESH_SCHEDULE_HOME: Final = "refresh_schedule_home"
 SERVICE_GET_SCHEDULE: Final = "get_schedule"
 SERVICE_GET_AWAY_SCHEDULE: Final = "get_away_schedule"
 SERVICE_SET_AWAY_SCHEDULE: Final = "set_away_schedule"
@@ -182,6 +184,7 @@ RESET_DEFAULT_SCHEMA = vol.Schema({vol.Optional(ATTR_HOME_DEVICE_ID): cv.string,
 HOME_PROFILE_SCHEMA = vol.Schema({vol.Optional(ATTR_HOME_DEVICE_ID): cv.string, vol.Required("profile"): vol.All(cv.string, vol.Length(min=1, max=80))})
 
 HOME_PROFILE_ACTION_SCHEMA = HOME_PROFILE_SCHEMA
+REFRESH_SCHEDULE_HOME_SCHEMA = vol.Schema({vol.Optional(ATTR_HOME_DEVICE_ID): cv.string})
 
 PROFILE_SCHEMA = vol.Schema({vol.Required(ATTR_ENTITY_ID): cv.entity_id, vol.Required("profile"): vol.All(cv.string, vol.Length(min=1, max=80))})
 
@@ -607,6 +610,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
         return service_coordinator, manager, profile
 
+    async def async_refresh_schedule_home(call: ServiceCall) -> None:
+        """Refresh all eligible room schedules with one final state update."""
+        from .button import refresh_room_schedule
+
+        service_coordinator = get_home_coordinator(call)
+        await run_whole_home(
+            service_coordinator,
+            SERVICE_REFRESH_SCHEDULE_HOME,
+            lambda room_id: refresh_room_schedule(service_coordinator, room_id),
+            refresh=True,
+        )
+
     async def async_save_profile_home(call: ServiceCall) -> None:
         service_coordinator, manager, profile = whole_home_profile_target(call)
         await run_whole_home(service_coordinator, SERVICE_SAVE_PROFILE_HOME,
@@ -642,6 +657,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         (SERVICE_SET_CLIMATE_TIMER_HOME, async_set_climate_timer_home, SERVICE_SET_CLIMATE_TIMER_HOME_SCHEMA),
         (SERVICE_SET_HVAC_MODE_HOME, async_set_hvac_mode_home, SERVICE_SET_HVAC_MODE_HOME_SCHEMA),
         (SERVICE_SET_AWAY_SCHEDULE_HOME, async_set_away_schedule_home, SERVICE_SET_AWAY_SCHEDULE_HOME_SCHEMA),
+        (SERVICE_REFRESH_SCHEDULE_HOME, async_refresh_schedule_home, REFRESH_SCHEDULE_HOME_SCHEMA),
         (SERVICE_SAVE_PROFILE_HOME, async_save_profile_home, HOME_PROFILE_ACTION_SCHEMA),
         (SERVICE_RESTORE_PROFILE_HOME, async_restore_profile_home, HOME_PROFILE_ACTION_SCHEMA),
     ):
@@ -876,6 +892,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if room_id not in service_coordinator.data.rooms:
             raise HomeAssistantError(f"Room {room_id} is not part of home {service_coordinator.home_id}")
         return service_coordinator, room_id
+
+    async def async_refresh_schedule(call: ServiceCall) -> None:
+        """Refresh a room schedule using the same logic as its button."""
+        from .button import refresh_room_schedule
+
+        service_coordinator, room_id = resolve_room(call.data[ATTR_ENTITY_ID])
+        await refresh_room_schedule(service_coordinator, room_id)
+        await service_coordinator.async_request_refresh()
+
+    if not hass.services.has_service(DOMAIN, SERVICE_REFRESH_SCHEDULE):
+        hass.services.async_register(
+            DOMAIN, SERVICE_REFRESH_SCHEDULE, async_refresh_schedule,
+            schema=SERVICE_GET_SCHEDULE_SCHEMA,
+        )
 
     async def async_get_schedule(call: ServiceCall) -> dict[str, Any]:
         """Return the current smart schedule for a room."""
