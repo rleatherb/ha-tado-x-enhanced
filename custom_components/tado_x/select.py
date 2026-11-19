@@ -9,7 +9,7 @@ from homeassistant.components.select import SelectEntity, SelectEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -421,11 +421,12 @@ class TadoXHomeScheduleProfileSelect(CoordinatorEntity[TadoXDataUpdateCoordinato
     def __init__(self, coordinator: TadoXDataUpdateCoordinator, *, save: bool) -> None:
         super().__init__(coordinator)
         self._save = save
-        self._attr_name = "Save schedule profile" if save else "Restore schedule profile"
+        self._attr_name = "Save all room schedules as" if save else "Restore all room schedules"
+        self._attr_translation_key = "save_schedule_profile_home" if save else "restore_schedule_profile_home"
         self._attr_icon = "mdi:content-save-outline" if save else "mdi:calendar-sync"
         self._attr_unique_id = (
-            f"{coordinator.home_id}_save_schedule_profile"
-            if save else f"{coordinator.home_id}_schedule_profile"
+            f"{coordinator.home_id}_save_all_room_schedules_as"
+            if save else f"{coordinator.home_id}_restore_all_room_schedules"
         )
 
     @property
@@ -457,18 +458,15 @@ class TadoXHomeScheduleProfileSelect(CoordinatorEntity[TadoXDataUpdateCoordinato
         manager = self.coordinator.schedule_profile_manager
         if option not in manager.all_names():
             raise HomeAssistantError(f"Unknown schedule profile: {option}")
-        registry = dr.async_get(self.hass)
-        device = registry.async_get_device(
-            identifiers={(DOMAIN, str(self.coordinator.home_id))}
-        )
-        if device is None:
-            raise HomeAssistantError("Tado X Home device is not registered")
+        entity = er.async_get(self.hass).async_get(self.entity_id)
+        if entity is None or not entity.device_id:
+            raise HomeAssistantError("Schedule profile control is not attached to a Tado X Home device")
         service = (
             "save_schedule_profile_home" if self._save
             else "restore_schedule_profile_home"
         )
         await self.hass.services.async_call(
-            DOMAIN, service, {"device_id": device.id, "profile": option},
+            DOMAIN, service, {"device_id": entity.device_id, "profile": option},
             blocking=True,
         )
         self.async_write_ha_state()
