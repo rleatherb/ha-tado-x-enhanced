@@ -731,6 +731,9 @@
       },
       "refresh_holiday_mode": {
         "name": "Refresh Holiday Mode"
+      },
+      "refresh_schedule_home": {
+        "name": "Refresh all room schedules"
       }
     },
     "select": {
@@ -757,6 +760,12 @@
           "MANUAL": "Manual",
           "NEXT_TIME_BLOCK": "Next Time Block"
         }
+      },
+      "restore_schedule_profile_home": {
+        "name": "Restore all room schedules"
+      },
+      "save_schedule_profile_home": {
+        "name": "Save all room schedules as"
       }
     },
     "device_tracker": {
