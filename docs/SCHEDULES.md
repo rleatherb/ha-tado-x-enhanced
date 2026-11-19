@@ -276,6 +276,12 @@ data:
 Data returned includes temperature, humidity, stripes (which are heating data), callfForHeat (the times associated with different heat settings), weather, and a summary of average/min/max temperatures, average humidity, and the number of heating hours.
 
 
+### Home-device schedule controls
+
+The Tado X Home device provides **Refresh all room schedules**, **Restore all room schedules** and **Save all room schedules as**. These are distinct from the room-device controls and act on eligible configured rooms in the selected Tado home only. Refresh reads the current schedule and updates profile comparisons without changing the schedules. Save retrieves a **fresh Home schedule and its associated Away settings directly from the Tado API for each eligible room** before storing the chosen profile. It does not save from a cached schedule, so a preceding **Refresh all room schedules** operation is unnecessary and would duplicate API requests. If the fresh data cannot be retrieved or validated for a room, that room's profile is not overwritten; the whole-home action reports the failure. Restore reapplies each room's saved Home and Away settings, using the existing room-specific profile or home-default fallback.
+
+The two home profile selectors show a common profile when every room reports the same selection; otherwise they show **Custom**. Selecting **Custom** does nothing. Whole-home actions report partial failures and do not silently apply changes to another configured home. Schedule refresh requests are on demand and consume Tado API quota.
+
 ## Profile actions and home targeting
 
 The room device provides **Restore schedule profile**, **Save schedule profile** and **Refresh Schedule**. The device-page selectors for saving/restoring **home-wide defaults** were removed; use `tado_x.save_schedule_profile_default` and `tado_x.restore_schedule_profile_default` in Developer Tools → Actions instead.
