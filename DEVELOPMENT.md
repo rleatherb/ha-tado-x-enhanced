@@ -35,6 +35,29 @@ Published 10 November 2026 after DEV-005 and its documentation/release-readiness
 - Next task: collect, investigate and prioritise candidate work packages before functional editing.
 - No version bump, release date, release-candidate package, Home Assistant functional test or Tado API test is implied by this record.
 
+## DEV-006.6 — Blink Display device identification (experimental proof of concept; specified 19 November 2026)
+
+**Status:** Specification only; no implementation or live Tado X API verification yet. Convenience enhancement, non-critical and independent of pending DEV-006.1 OpenTherm hardware validation.
+
+**Goal:** Add an on-demand **Blink Display** button to each supported **physical device** page (not a room device page) for Tado X radiator valves, wired thermostats and bridges. Candidate types in the existing integration: `VA04` (Radiator Valve X), `RU04` (Wired Smart Thermostat X), `IB02` (Bridge X). Do not initially include `TR04` (Wireless Receiver X) or other types without evidence of support. Preserve existing device identifiers, unique IDs and multi-home behaviour.
+
+**Research and uncertainty:**
+- The older community API specification describes `POST /api/v2/devices/{deviceId}/identify`, but this does not establish support for Tado X.
+- The archived `oliviertassinari/tado-x` repository (December 2024) did not reveal an identify implementation in its integration source.
+- A **candidate only**, not proven for Tado X: `hiall-fyi/tado_ce` uses `POST https://ext.api.tado.com/apps/graphql` with mutation `IdentifyDevice($deviceId: ID!) { identifyDevice(deviceId: $deviceId) { success failureReason } }` and identifier `{home_id}:PRE_LINE_X:{device_serial}`. That project's source describes the identifier as empirically observed for radiator thermostats and unverified for other types. Its implementation must not be treated as Tado X compatibility evidence.
+
+**Stage 1 — small isolated proof of concept, before any device buttons:**
+- Introduce a temporary developer-facing Home Assistant action `tado_x.test_identify_device`, selecting an **existing physical Tado X device entity** rather than entering an unrestricted serial number. Resolve the exact config entry, home ID and device serial from the selected entity; reject room/home entities, unsupported types and ambiguous or missing devices before issuing a request. If entity-based resolution proves impractical, review the selection design before coding rather than silently changing its contract.
+- Reuse existing Tado X authentication, request/error handling and API accounting. Issue **one** GraphQL mutation per invocation, with no automatic retry, no follow-up coordinator refresh and no background polling. GraphQL HTTP 200 may still contain `errors` or `success: false`; surface a clear failure reason. Never log tokens or other credentials.
+- First test with one `VA04` radiator valve; confirm **physical display flashing**, not just an API success response. Only if that works, test `RU04` thermostat and `IB02` bridge individually. Record responses and device-type outcomes without exposing serial numbers in public logs.
+- The test action is temporary, not a permanent published feature. If unsuccessful, stop without adding buttons; do not pursue speculative API calls or broad architectural changes. No routine API cost; **one on-demand request per test** (subject to Tado's own quota accounting).
+
+**Stage 2 — only if live tests establish support:**
+- Replace/remove the temporary test action and add a `Blink Display` button to each confirmed supported physical device page, associated using existing physical-device serial-number identifiers, **never** the room identifier. Preserve all existing entities and interfaces.
+- Each press sends one identify request, reports errors clearly and does not request an unrelated room-state refresh. Handle supported device types explicitly; do not show nonfunctional buttons for unverified devices.
+- Add entity translation keys for all shipped languages and update relevant documentation/release notes. Validate multi-home resolution, repeated devices in one room, API failure/rate limiting, and no background request overhead.
+- Keep DEV-006.6 optional: failure of the experiment must not delay other DEV-006 work or a release.
+
 ## DEV-006.5 — Coordinator health and state-refresh reliability (issue #16; specified 18 November 2026)
 
 **Status:** Specification only; investigate and design before implementing. Related report: https://github.com/rleatherb/ha-tado-x-enhanced/issues/16. Reported symptom: Home Assistant temperature/heating-demand readings may remain stale following heating changes, while reloading the integration brings them up to date. The cause is **not yet established**; do not attribute it definitively to Tado or to this integration.
