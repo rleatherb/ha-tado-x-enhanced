@@ -70,7 +70,7 @@ Available entities vary with hardware, account capabilities and configuration.
 
 | Device type | Main entities and controls |
 | :--- | :--- |
-| **Tado X Home** | Home ID; presence sensors/select; API quota, calls, current usage, estimated daily usage and reset time; home-wide heating buttons; supported hot-water sensors, mode selector and buttons; flow-temperature controls. |
+| **Tado X Home** | Home ID; presence sensors/select; API quota, calls, current usage, estimated daily usage and reset time; home-wide heating buttons and schedule refresh/save/restore controls; supported hot-water sensors, mode selector and buttons; flow-temperature controls. |
 | **Tado X Room** | Climate thermostat; temperature, humidity, heating power and running time; next schedule change, temperature and power; open-window/heating/override status; termination settings; save/restore profile selectors; **Refresh Schedule** button. |
 | **Physical Tado X device** | Battery, device temperature, temperature offset, connection state, low-battery status and child lock where supported. |
 | **Weather / air comfort / mobile** | Optional weather, comfort and presence entities. |
@@ -82,6 +82,8 @@ The four named profiles are **Normal**, **Alternative**, **Eco** and **Not in us
 A room-specific saved profile takes precedence over the home-wide default when restored normally. To apply the home-wide default to a room explicitly, use `tado_x.restore_schedule_profile_default` in **Developer Tools → Actions**; to save the room's current schedule as the home-wide default, use `tado_x.save_schedule_profile_default`. The corresponding device-page default selectors were removed. Saving or resetting a default does **not** immediately change active room schedules.
 
 The integration initially captures the current room schedule as **Normal** if that room profile is missing. The home-level **Schedule profile status** sensor reports the common profile, `Mixed` for different recognised profiles, or `Custom` if any room is Custom. The **Custom** indication is based on the latest comparison; when automatic checks are off, use **Refresh Schedule** to detect changes made outside Home Assistant. Additional profile names can be created separately for each home.
+
+**Saving home-wide room schedules** reads the current Home schedule and Away settings directly from Tado for each eligible room. There is no need to press **Refresh all room schedules** first; doing so would use additional API requests without improving the saved data's freshness. If a room's live schedule or Away settings cannot be retrieved, that room's stored profile is not overwritten.
 
 ## Actions
 
