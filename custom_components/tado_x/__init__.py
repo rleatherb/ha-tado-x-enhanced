@@ -507,7 +507,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         matches = [
             coordinator
             for entry_id, coordinator in hass.data.get(DOMAIN, {}).items()
-            if entry_id in device.config_entries
+            if device.config_entry_id == entry_id
             and (DOMAIN, str(coordinator.home_id)) in device.identifiers
         ]
         if len(matches) != 1:
