@@ -9,7 +9,7 @@ from homeassistant.components.button import ButtonEntity, ButtonEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -236,26 +236,25 @@ class TadoXHomeScheduleRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinato
     """Trigger the existing home-wide schedule refresh action."""
 
     _attr_has_entity_name = True
-    _attr_name = "Refresh Schedule"
-    _attr_translation_key = "refresh_schedule"
+    _attr_name = "Refresh all room schedules"
+    _attr_translation_key = "refresh_schedule_home"
     _attr_icon = "mdi:calendar-refresh"
     _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator: TadoXDataUpdateCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.home_id}_refresh_schedule"
+        self._attr_unique_id = f"{coordinator.home_id}_refresh_all_room_schedules"
 
     @property
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(identifiers={(DOMAIN, str(self.coordinator.home_id))})
 
     async def async_press(self) -> None:
-        registry = dr.async_get(self.hass)
-        device = registry.async_get_device(identifiers={(DOMAIN, str(self.coordinator.home_id))})
-        if device is None:
-            raise HomeAssistantError("Tado X Home device is not registered")
+        entity = er.async_get(self.hass).async_get(self.entity_id)
+        if entity is None or not entity.device_id:
+            raise HomeAssistantError("Refresh Schedule control is not attached to a Tado X Home device")
         await self.hass.services.async_call(
-            DOMAIN, "refresh_schedule_home", {"device_id": device.id}, blocking=True
+            DOMAIN, "refresh_schedule_home", {"device_id": entity.device_id}, blocking=True
         )
 
 
