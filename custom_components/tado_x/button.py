@@ -9,6 +9,7 @@ from homeassistant.components.button import ButtonEntity, ButtonEntityDescriptio
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -84,6 +85,7 @@ async def async_setup_entry(
     for room_id in coordinator.data.rooms:
         entities.append(TadoXScheduleRefreshButton(coordinator, room_id))
 
+    entities.append(TadoXHomeScheduleRefreshButton(coordinator))
     entities.append(TadoXHolidayRefreshButton(coordinator))
     async_add_entities(entities)
 
@@ -228,6 +230,33 @@ class TadoXScheduleRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinator], 
         """Refresh this room's schedule and then its coordinator state."""
         await refresh_room_schedule(self.coordinator, self._room_id)
         await self.coordinator.async_request_refresh()
+
+
+class TadoXHomeScheduleRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
+    """Trigger the existing home-wide schedule refresh action."""
+
+    _attr_has_entity_name = True
+    _attr_name = "Refresh Schedule"
+    _attr_translation_key = "refresh_schedule"
+    _attr_icon = "mdi:calendar-refresh"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: TadoXDataUpdateCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.home_id}_refresh_schedule"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(identifiers={(DOMAIN, str(self.coordinator.home_id))})
+
+    async def async_press(self) -> None:
+        registry = dr.async_get(self.hass)
+        device = registry.async_get_device(identifiers={(DOMAIN, str(self.coordinator.home_id))})
+        if device is None:
+            raise HomeAssistantError("Tado X Home device is not registered")
+        await self.hass.services.async_call(
+            DOMAIN, "refresh_schedule_home", {"device_id": device.id}, blocking=True
+        )
 
 
 class TadoXHolidayRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
