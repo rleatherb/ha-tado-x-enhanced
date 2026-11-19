@@ -731,6 +731,9 @@
       },
       "refresh_holiday_mode": {
         "name": "Actualiser le mode vacances"
+      },
+      "refresh_schedule_home": {
+        "name": "Actualiser tous les programmes des pièces"
       }
     },
     "select": {
@@ -757,6 +760,12 @@
           "MANUAL": "Manuel",
           "NEXT_TIME_BLOCK": "Prochaine plage horaire"
         }
+      },
+      "restore_schedule_profile_home": {
+        "name": "Restaurer tous les programmes des pièces"
+      },
+      "save_schedule_profile_home": {
+        "name": "Enregistrer tous les programmes des pièces sous"
       }
     },
     "device_tracker": {
