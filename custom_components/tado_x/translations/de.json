@@ -524,6 +524,18 @@
       }
     },
     "sensor": {
+      "coordinator_health": {
+        "name": "Koordinatorstatus",
+        "state": {
+          "initialising": "Initialisierung",
+          "healthy": "Fehlerfrei",
+          "degraded": "Beeinträchtigt",
+          "stale": "Veraltet",
+          "error": "Fehler",
+          "rate_limited": "Ratenlimit erreicht",
+          "authentication_required": "Authentifizierung erforderlich"
+        }
+      },
       "temperature": {
         "name": "Temperatur"
       },
@@ -666,6 +678,9 @@
       },
       "api_theoretical_daily_usage": {
         "name": "API theoretische Tagesnutzung"
+      },
+      "room_id": {
+        "name": "Tado Raum-ID"
       }
     },
     "binary_sensor": {
@@ -705,6 +720,9 @@
       },
       "timer_duration": {
         "name": "Timerdauer"
+      },
+      "dhw_setpoint": {
+        "name": "Warmwassertemperatur"
       }
     },
     "button": {
@@ -734,6 +752,9 @@
       },
       "refresh_schedule_home": {
         "name": "Alle Raumzeitpläne aktualisieren"
+      },
+      "blink_display": {
+        "name": "Anzeige blinken lassen"
       }
     },
     "select": {

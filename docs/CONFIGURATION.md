@@ -82,3 +82,7 @@ The Configure dialogue recommends keeping actual API consumption below 100% of t
 ### Adding Tado rooms
 
 If a room is added in Tado while Home Assistant is running, reload the Tado X Enhanced integration to register its device and entities and capture its initial `Normal` schedule profile. Whole-home actions will skip rooms discovered after setup or without an initial `Normal` profile and report them explicitly; automatic dynamic entity registration is not supported.
+
+### Coordinator diagnostics
+
+Use the home-level [Coordinator Health sensor](ENTITIES.md#coordinator-health) to distinguish stale, degraded, rate-limited and failed refreshes. The local watchdog requires the diagnostic entity to remain enabled. Hot-water temperature control depends on the API exposing valid setpoint constraints; see [OpenTherm](ENTITIES.md#opentherm-hot-water-setpoint).

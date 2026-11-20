@@ -11,6 +11,7 @@ The device-model list below is illustrative, not a guarantee that every feature 
 | TR04 | Wireless Receiver X |
 | RU04 | Wired Smart Thermostat X |
 | IB02 | Bridge X |
+| PR04 | Tado X device (model PR04) |
 
 Available entities vary with hardware, account capabilities and configuration.
 
@@ -20,6 +21,7 @@ Available entities vary with hardware, account capabilities and configuration.
 | :--- | :--- | :--- | :---: |
 | Boost All | Button | Apply a heating boost to all rooms for 30 minutes |  |
 | Boost Hot Water | Button | Apply a heating boost to the hot water for 1 hour | 1.0.0 |
+| Hot Water Temperature | Number | Supported DHW setpoint and API constraints | 1.4.0 |
 | Hot Water Mode | Selector | Off / Schedule / Boost | 1.0.0 |
 | Presence Mode | Selector | Home / Away / Away (Geofencing) |  |
 | Resume Hot Water Schedule | Button | Resume hot water schedule | 1.0.0 |
@@ -30,6 +32,7 @@ Available entities vary with hardware, account capabilities and configuration.
 
 | Sensors | Description | Version |
 | :--- | :--- | :---: |
+| Heating Time Today | Whole-home Minder running time today in hours (two decimals), using the home summary, not the sum of overlapping room times; available when Running Times is enabled. | 1.4.0 |
 | API calls today | The number of API calls made in the current 24-hour period. With an auto-assist subscription up to 20,000 calls can be made; without that only 100 calls are allowed. |  |
 | API current usage | Shows the percentage of the current daily allowance that has been used. |  |
 | API estimated daily usage | Estimates how the current usage rate will impact the daily allowance. Useful when configuring polling frequency and can exceed **100%**. It uses a rolling 60-minute window of server-reported quota observations (minimum 10 minutes before a provisional estimate is available). After restart, quota reset or quota-counter correction, it temporarily displays `Unknown` while collecting observations. | 1.0.0 |
@@ -51,6 +54,7 @@ The 60-minute rolling estimate is based on observed consumption and can under- o
 
 | Diagnostic | Description | Version |
 | :--- | :--- | :---: |
+| Coordinator Health | Refresh health and command outcome diagnostics. | 1.4.0 |
 | Tado Home ID | The internal Tado identifier for this home. | 1.0.0 |
 
 
@@ -67,7 +71,7 @@ The 60-minute rolling estimate is based on observed consumption and can under- o
 | Comfort Level | Sensor (text) | As returned by Tado |  |
 | Heating | Binary sensor | Normal or Hot (when calling for heat) |  |
 | Heating Power | Sensor (percentage) | The level of heat required, from 0% to 100% |  |
-| Heating Time Today | Sensor (hours) | The number of hours today when calling for heat |  |
+| Heating Time Today | Sensor (hours) | Minder-reported running time today, to two decimal places; historical final totals may be higher. | 1.4.0 |
 | Humidity | Sensor (percentage) | The humidity of the room |  |
 | Humidity Level | Sensor (text) | As returned by Tado |  |
 | Manual Control | Binary sensor | Off if the temperature is being set using the current schedule. On if the temperature is set to a custom value. |  |
@@ -77,6 +81,10 @@ The 60-minute rolling estimate is based on observed consumption and can under- o
 | Temperature | Sensor | The current room temperature |  |
 | Window Open | Binary sensor | On if an open window is detected (only available with an auto-assist subscription) |  |
 
+
+| Diagnostic | Type | Description | Version |
+| :--- | :--- | :--- | :--- |
+| Tado Room ID | Diagnostic sensor | Internal room identifier, unique only within a home. | 1.4.0 |
 
 | Configuration | Type | Description | Version |
 | :--- | :--- | :--- | :---: |
@@ -110,7 +118,7 @@ The Tado X Home device also offers **Refresh all room schedules** (button), **Re
 
 ## Tado X Devices
 
-Applies to supported Tado X devices, including Radiator Valve X, Temperature Sensor X, Wireless Receiver X, Wired Smart Thermostat X and Bridge X
+Applies to supported Tado X devices, including Radiator Valve X, Temperature Sensor X, Wireless Receiver X, Wired Smart Thermostat X, Bridge X and PR04
 
 | Device info | Description | Version |
 | :--- | :--- | :---: |
@@ -118,7 +126,16 @@ Applies to supported Tado X devices, including Radiator Valve X, Temperature Sen
 | Serial number | Gives the serial number of the Tado X device | 1.0.0 |
 
 
+
+| Configuration | Type | Description | Version |
+| :--- | :--- | :--- | :--- |
+| Blink Display | Button | Identify the physical device by flashing its display/indicator, when `supportsIdentify` is true. | 1.4.0 |
+
+This configuration control applies to every physical device model below, but only if the API advertises identification support.
+
 ## Tado Radiator Valve X
+
+Blink Display: available under Configuration when the device advertises identification support.
 
 | Controls | Type | Description | Version |
 | :--- | :--- | :--- | :--- |
@@ -127,8 +144,8 @@ Applies to supported Tado X devices, including Radiator Valve X, Temperature Sen
 
 | Sensors | Description | Version |
 | :--- | :--- | :--- |
-| Battery | Normal if battery is charged |  |
-| Battery Low | Normal if battery is charged |  |
+| Battery | Normal, Low or Depleted where reported |  |
+| Battery Low | On for low or depleted battery |  |
 | Connectivity | Connected if device is connected |  |
 | Device Temperature | Temperature as recorded by the device |  |
 | Temperature Offset | Temperature offset as applied by the device |  |
@@ -136,16 +153,20 @@ Applies to supported Tado X devices, including Radiator Valve X, Temperature Sen
 
 ## Tado Temperature Sensor X
 
+Blink Display: available under Configuration when the device advertises identification support.
+
 | Sensors | Type | Description | Version |
 | :--- | :--- | :--- | :--- |
-| Battery | Sensor | Normal if battery is charged |  |
-| Battery Low | Binary sensor (battery) | Normal if battery is charged |  |
+| Battery | Sensor | Normal, Low or Depleted where reported |  |
+| Battery Low | Binary sensor (battery) | On for low or depleted battery |  |
 | Connectivity | Binary sensor (connectivity) | Connected if device is connected |  |
 | Device Temperature | Sensor (temperature) | Temperature as recorded by the device |  |
 | Temperature Offset | Sensor (temperature) | Temperature offset as applied by the device |  |
 
 
 ## Tado Bridge X
+
+Blink Display: available under Configuration when the device advertises identification support.
 
 | Sensors | Type | Description | Version |
 | :--- | :--- | :--- | :--- |
@@ -154,10 +175,24 @@ Applies to supported Tado X devices, including Radiator Valve X, Temperature Sen
 
 ## Tado Wireless Receiver X (TR04)
 
+Blink Display: available under Configuration when the device advertises identification support.
+
 | Sensors | Type | Description | Version |
 | :--- | :--- | :--- | :--- |
 | Connectivity | Binary sensor (connectivity) | Connected if device is connected |  |
 
+
+## Tado Wired Smart Thermostat X (RU04)
+
+Connectivity is available; battery and temperature-related sensors depend on the returned device data. The common Blink Display configuration button applies when supported.
+
+## Tado X device (PR04)
+
+| Sensors | Type | Description | Version |
+| :--- | :--- | :--- | :--- |
+| Connectivity | Binary sensor (connectivity) | Connected if device is connected | |
+
+The common Blink Display configuration button applies only if the API advertises support.
 
 ---
 
@@ -198,3 +233,59 @@ When Holiday Mode is active, the hot-water API may report `HOLIDAY_MODE_OFF`. **
 ### Home schedule profile status
 
 The **Schedule profile status** sensor belongs to the Tado X Home device and summarises the currently configured rooms in that home. If all rooms match the same profile, that profile name is shown; different recognised profiles give `Mixed`; if any room is `Custom`, the home reads `Custom` (taking precedence over `Mixed`). The sensor follows existing profile comparison updates and makes no additional Tado API requests. Rooms discovered after setup are excluded until an integration reload.
+
+### Physical-device identification
+
+A **Blink Display** configuration button is created for each physical Tado X device reporting `supportsIdentify: true` in the existing device-data response. Pressing it sends a single on-demand identification command; no extra periodic API calls or coordinator refreshes are performed. The button is associated with the physical device, not the room or home. Device support is determined by the API capability, not a fixed model allowlist.
+
+### Coordinator Health
+
+The home-level diagnostic sensor reports Initialising, Healthy, Degraded, Stale, Error, Rate limited or Authentication required. Attributes show UTC refresh timestamps, duration, outcome, counters, in-progress status, failed optional datasets and error type. A local check every 30 seconds detects stale data after three main polling intervals (minimum 90 seconds), without API requests. The watchdog runs while the sensor is enabled and loaded. Cached rate-limited responses do not count as fresh updates. Healthy indicates successful coordinator snapshots, not proof that Tado's underlying measurements have changed. Counters reset on reload.
+
+Ordinary optional dataset failures retain the last successful optional values (running times only within the same day) while allowing fresh core readings to update. Coordinator Health reports Degraded and identifies failed datasets until successful retrieval or disabling the feature. Without cached values, optional data use existing empty or unknown defaults. Authentication failures and HTTP 429 responses retain separate whole-update handling; cached rate-limited snapshots do not advance the fresh-update timestamp.
+
+Coordinator Health also exposes `last_command_refresh_requested`, `last_command_refresh_completed`, `last_command_refresh_outcome` and `command_refresh_pending`. These describe the latest monitored post-command coordinator request, not confirmation that Tado has applied a command. A refresh already running when the request arrives does not resolve it; the next actual fetch that starts after the request does. Multiple requests may share a fetch. Outcomes are pending, success, degraded, error, rate_limited, authentication_required or cancelled. A request that fails before a fetch completes is recorded as error; the original successful write is not treated as failed. Read-only refresh requests are not recorded as commands. No extra polling is introduced.
+
+#### Coordinator Health attributes
+
+| Attribute | Description |
+|---|---|
+| `last_successful_refresh` | UTC timestamp of last fresh successful core fetch |
+| `last_attempted_refresh` | UTC timestamp of start of latest attempt |
+| `last_refresh_duration_seconds` | Duration of latest completed attempt in seconds |
+| `last_refresh_outcome` | Latest fetch outcome (initialising, success, error, rate_limited, authentication_required or cancelled) |
+| `consecutive_failures` | Consecutive unsuccessful attempts, excluding cancellations |
+| `successful_refreshes` | Number of successful core fetches, including degraded updates |
+| `failed_refreshes` | Number of unsuccessful attempts, excluding cancellations |
+| `failed_optional_datasets` | Mapping of failed optional datasets to exception types |
+| `last_error_type` | Exception type for latest whole-update failure, or null |
+| `polling_interval_seconds` | Current main polling interval |
+| `staleness_threshold_seconds` | Greater of 90 seconds and three main polling intervals |
+| `last_command_refresh_requested` | UTC timestamp of latest command refresh request |
+| `last_command_refresh_completed` | UTC timestamp of resolution, or null while pending |
+| `last_command_refresh_outcome` | Latest command refresh outcome (including pending and degraded) |
+| `command_refresh_pending` | Whether a qualifying update is outstanding |
+| `refresh_in_progress` | Whether an actual fetch is running |
+
+#### Investigating differences from the Tado app
+
+Before reloading the integration, open the affected Tado X Home device → Diagnostics → **Coordinator Health**, or locate its entity in Developer Tools → States to inspect all attributes. Record the home and room IDs, time, app temperature/target/heating demand and the matching HA states.
+
+- If `last_successful_refresh` is old or the state is Stale, compare it with `last_attempted_refresh`, `refresh_in_progress`, and `staleness_threshold_seconds` to distinguish a stalled fetch from repeated failures.
+- If Degraded, inspect `failed_optional_datasets`; core room readings should still be refreshed. If Error, Rate limited or Authentication required, examine `last_error_type`, `last_refresh_outcome` and failure counters.
+- After a command, compare the requested/completed timestamps and outcome. Pending indicates no qualifying update has resolved the request yet; success indicates a fetched snapshot, not proof of physical application.
+- If Healthy but values differ, enable debug logging for `custom_components.tado_x.coordinator` and reproduce the problem. Compare the logged `Coordinator room snapshot` (home ID, room ID, temperature, target and demand) with the app and HA entities. Save refresh started/completed and command refresh messages before reloading, since counters reset on reload. Remove credentials and identifying information before sharing logs in an issue.
+
+```yaml
+logger:
+  logs:
+    custom_components.tado_x.coordinator: debug
+```
+
+Disable debug logging after collecting the evidence. Schedule comparisons use separate polling; use Refresh Schedule for schedule-only discrepancies. A healthy coordinator cannot rule out stale information supplied by Tado itself.
+
+### OpenTherm hot-water setpoint
+
+Where the existing DHW state response provides a finite numeric setpoint within valid numeric `setpointConstraints`, the home device gains **Hot Water Temperature** (`number`), using whole-degree Hops manual-control writes. Missing setpoint data at initial setup means a reload may be needed after capability becomes available. This feature does not introduce periodic API calls.
+
+On homes exposing both a DHW setpoint and `thermInterfaceType: OPENTHERM`, new relay-style hot-water buttons and **Hot Water Mode** are disabled by default, while existing registered entities and explicit user settings are preserved. This is a conservative heuristic, not a universal relay-capability test. The Hot Water State sensor reports `MANUAL_ON` and `MANUAL_OFF` verbatim. These states have no verified equivalent in the relay-oriented Hot Water Mode selector.

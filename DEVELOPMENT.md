@@ -1,28 +1,35 @@
-> **Development history:** DEV-001 through DEV-005 records below preserve intermediate decisions, superseded designs and testing status as recorded at the time. Earlier references to unpublished builds, release candidates or pending testing are historical and do not describe the published v1.3.0 release. Refer to the release records and `CHANGELOG.md` for final published behaviour and validation evidence.
-
-# Tado X Enhanced — Development Status
+# Tado X Enhanced — Development and Release Record
 
 **Repository:** https://github.com/rleatherb/ha-tado-x-enhanced  
 **Integration domain:** `tado_x`  
-**Current published release:** `v1.3.0` (10 November 2026)  
-**Release tag:** `v1.3.0` (commit `d12fe8ef55b899af5169dbde3354a47a60807bac`)  
+**Version described by this package:** `1.4.0`  
 **Stable branch:** `main`  
 **Development branch:** `develop`  
-**Development baseline:** Both branches synchronised at the v1.3.0 release commit before this housekeeping update  
-**Current development cycle:** DEV-006 (scoping and prioritisation)  
-**Next release:** Not yet agreed; no version number or release date assigned  
-**DEV-003 integration:** PR #9, commit `1ad377480c674e718f413d29bdc6416d63ae7f78`  
-**Updated:** 10 November 2026
+**Updated:** 20 November 2026
 
-## Current development position
+## v1.4.0 release record
 
-Version `v1.3.0` was published on 10 November 2026 following DEV-005. It adds five whole-home actions, the home-level Schedule profile status sensor, 0.1 °C temperature selectors for the affected actions, the corrected default for automatic Holiday Mode polling, and revised installation and migration guidance. The release registers 25 `tado_x` actions. Existing multi-home support, schedule profiles and Home/Away settings, extended climate timers, domestic hot water, Holiday Mode, historic data, authentication reliability, polling options and API monitoring remain part of the published baseline.
+The DEV-006 cycle is complete for feature development. Version 1.4.0 consolidates OpenTherm domestic hot-water setpoint support, depleted battery handling, room and home schedule controls, heating duration sensors and historical actions, coordinator health and refresh reliability, and physical-device identification. There are 31 registered actions. The integration domain, existing action interfaces and home-scoped storage are retained.
 
-The published `v1.3.0` tag, `main` and `develop` were verified at the same commit (`d12fe8ef55b899af5169dbde3354a47a60807bac`) before this documentation-only housekeeping change. The release tag and `main` must remain unchanged. New development documentation and any subsequently approved work are to be committed to `develop` without retroactively modifying the release.
+| Work package | Acceptance and validation |
+|---|---|
+| DEV-006.1 | OpenTherm setpoint operation reported working externally; latest default relay-control disablement not confirmed on OpenTherm hardware. Accepted with qualification. |
+| DEV-006.2 | Depleted battery interpretation and translation coverage checked in standalone tests; physical exhaustion not live-tested. Accepted with qualification. |
+| DEV-006.3 | Room and home schedule controls validated live. |
+| DEV-006.4 | Heating duration sensors, room IDs and historical actions validated live. |
+| DEV-006.5A | Eight live checks passed. |
+| DEV-006.5B | Nine applicable live checks passed; mobile-device monitoring not used or live-tested. |
+| DEV-006.5C | Eleven live checks passed. |
+| DEV-006.6 | Blink Display validated on VA04 and SU04 devices. |
+| Consolidation | All ten live checks passed on the maintainer's non-OpenTherm homes; 14 standalone regression scripts previously reported passing. |
 
-The maintainer reported successful Home Assistant functional checks of the v1.3.0 whole-home actions, profile-status sensor and temperature selectors. Two replacement trials in a disposable Home Assistant 2026.11 VirtualBox environment retained the specifically checked device and renamed entity IDs, but required reconfiguration and reauthorisation. That result is not a guarantee of identity preservation elsewhere. The updated Holiday Mode polling default has static regression coverage but no separately reported live verification. Flow Temperature could not be tested on the available homes; dynamic addition of rooms and every upgrade path were not live-tested. Refer to `CHANGELOG.md` for release-specific validation and limitations.
+The exceptional API failure paths have simulated rather than deliberately induced live coverage. The root cause of issue #16 remains unconfirmed. Battery exhaustion testing is disproportionate to the narrow change; unsupported OpenTherm relay-control calls may still produce API errors if controls remain enabled. These limitations were explicitly accepted by the maintainer. See CHANGELOG.md for public release details and contributor credits.
 
-DEV-006 starts with identifying, investigating and prioritising proposed maintenance and enhancement work packages. No functional change is authorised by this initial housekeeping, and no subsequent version or release date has been selected. Significant architectural changes require design discussion before implementation.
+The last confirmed published baseline during this development cycle was v1.3.0 (10 November 2026), commit `d12fe8ef55b899af5169dbde3354a47a60807bac`. This record does not assert that a v1.4.0 tag has been created. Publication requires approval and validation of the exact final package. Changes after approval require renewed validation. Preserve previous release tags.
+
+## Historical development records
+
+The following records preserve decisions and evidence as recorded at the time, including superseded designs and interim testing status. They are not descriptions of outstanding work in v1.4.0.
 
 ## v1.3.0 release record
 
@@ -34,127 +41,6 @@ Published 10 November 2026 after DEV-005 and its documentation/release-readiness
 - Initial task: update only the current development status and establish DEV-006 while retaining DEV-001 through DEV-005 history as an audit trail.
 - Next task: collect, investigate and prioritise candidate work packages before functional editing.
 - No version bump, release date, release-candidate package, Home Assistant functional test or Tado API test is implied by this record.
-
-## DEV-006.6 — Blink Display device identification (experimental proof of concept; specified 19 November 2026)
-
-**Status:** Specification only; no implementation or live Tado X API verification yet. Convenience enhancement, non-critical and independent of pending DEV-006.1 OpenTherm hardware validation.
-
-**Goal:** Add an on-demand **Blink Display** button to each supported **physical device** page (not a room device page) for Tado X radiator valves, wired thermostats and bridges. Candidate types in the existing integration: `VA04` (Radiator Valve X), `RU04` (Wired Smart Thermostat X), `IB02` (Bridge X). Do not initially include `TR04` (Wireless Receiver X) or other types without evidence of support. Preserve existing device identifiers, unique IDs and multi-home behaviour.
-
-**Research and uncertainty:**
-- The older community API specification describes `POST /api/v2/devices/{deviceId}/identify`, but this does not establish support for Tado X.
-- The archived `oliviertassinari/tado-x` repository (December 2024) did not reveal an identify implementation in its integration source.
-- A **candidate only**, not proven for Tado X: `hiall-fyi/tado_ce` uses `POST https://ext.api.tado.com/apps/graphql` with mutation `IdentifyDevice($deviceId: ID!) { identifyDevice(deviceId: $deviceId) { success failureReason } }` and identifier `{home_id}:PRE_LINE_X:{device_serial}`. That project's source describes the identifier as empirically observed for radiator thermostats and unverified for other types. Its implementation must not be treated as Tado X compatibility evidence.
-
-**Stage 1 — small isolated proof of concept, before any device buttons:**
-- Introduce a temporary developer-facing Home Assistant action `tado_x.test_identify_device`, selecting an **existing physical Tado X device entity** rather than entering an unrestricted serial number. Resolve the exact config entry, home ID and device serial from the selected entity; reject room/home entities, unsupported types and ambiguous or missing devices before issuing a request. If entity-based resolution proves impractical, review the selection design before coding rather than silently changing its contract.
-- Reuse existing Tado X authentication, request/error handling and API accounting. Issue **one** GraphQL mutation per invocation, with no automatic retry, no follow-up coordinator refresh and no background polling. GraphQL HTTP 200 may still contain `errors` or `success: false`; surface a clear failure reason. Never log tokens or other credentials.
-- First test with one `VA04` radiator valve; confirm **physical display flashing**, not just an API success response. Only if that works, test `RU04` thermostat and `IB02` bridge individually. Record responses and device-type outcomes without exposing serial numbers in public logs.
-- The test action is temporary, not a permanent published feature. If unsuccessful, stop without adding buttons; do not pursue speculative API calls or broad architectural changes. No routine API cost; **one on-demand request per test** (subject to Tado's own quota accounting).
-
-**Stage 2 — only if live tests establish support:**
-- Replace/remove the temporary test action and add a `Blink Display` button to each confirmed supported physical device page, associated using existing physical-device serial-number identifiers, **never** the room identifier. Preserve all existing entities and interfaces.
-- Each press sends one identify request, reports errors clearly and does not request an unrelated room-state refresh. Handle supported device types explicitly; do not show nonfunctional buttons for unverified devices.
-- Add entity translation keys for all shipped languages and update relevant documentation/release notes. Validate multi-home resolution, repeated devices in one room, API failure/rate limiting, and no background request overhead.
-- Keep DEV-006.6 optional: failure of the experiment must not delay other DEV-006 work or a release.
-
-## DEV-006.5 — Coordinator health and state-refresh reliability (issue #16; specified 18 November 2026)
-
-**Status:** Specification only; investigate and design before implementing. Related report: https://github.com/rleatherb/ha-tado-x-enhanced/issues/16. Reported symptom: Home Assistant temperature/heating-demand readings may remain stale following heating changes, while reloading the integration brings them up to date. The cause is **not yet established**; do not attribute it definitively to Tado or to this integration.
-
-**Objectives and constraints:**
-- Improve detection and, where a verified defect permits, prevention of stale coordinator state **without increasing normal Tado API request volume**.
-- Preserve existing coordinator cadence, multi-home isolation, entity IDs, API quota handling and all control actions. Do not introduce automatic integration reloads, independent recovery polling, repeated post-command API requests, or fabricated heating demand.
-- Distinguish a successful fresh room-state API fetch from a cached snapshot reused after HTTP 429, a failed fetch, and a successfully published coordinator update. Ensure cached data is not incorrectly described as fresh.
-- Record per-home timestamps for last successful room-state fetch and last published coordinator update, plus last error/failure and rate-limit state. Use monotonic time for local elapsed-time checks and suitable timestamps for diagnostic display. Avoid sensitive data in logs.
-- Consider a **home-device Coordinator Health diagnostic sensor** with statuses such as Healthy, Delayed, Failed and Rate limited, plus concise attributes; assess whether the sensor adds sufficient value and define unambiguous state transitions before implementation.
-- Add a lightweight local watchdog for missed/overdue update cycles with thresholds proportional to the configured main polling interval. Throttle warnings, account for Home Assistant shutdown/reload, in-flight updates and deliberate rate-limit backoff, and do not trigger extra API calls.
-- Validate expected home/room snapshot completeness without treating normal room changes or transient API behaviour as grounds for destructive entity changes. A stable room-state fingerprint can aid diagnosis, but **unchanged temperature/heating demand alone is not an error**.
-- Instrument the **existing** post-command refresh path to identify failed refreshes and whether new setpoints/modes appear in the returned room state. Do not require immediate changes in heating power and do not add verification API calls.
-- Investigate the actual cause of issue #16. If a reproducible coordinator/entity-notification defect is identified, fix it within DEV-006.5 with targeted tests; otherwise retain diagnostics and explicitly report the remaining uncertainty.
-
-**Validation and documentation:**
-- Review the published v1.3.0 coordinator, climate entities, API error/rate-limit handling, option-driven polling and setup/reload paths before changing code.
-- Test normal polling, unchanged but valid room states, delayed/failed requests, 429 cached responses, post-command refresh, reload/shutdown, polling interval changes, and independent behaviour for multiple homes with overlapping room IDs.
-- Confirm zero additional Tado API requests in normal operation; include tests for warning throttling and status transitions. Distinguish static/simulated validation from live Home Assistant/Tado evidence.
-- Update relevant entity descriptions, translations, documentation and release notes if an entity or behaviour is added. Complete the mandatory public-documentation review before release.
-
-## DEV-006.4 — Heating Time Today precision and home sensor (specified, 17 November 2026)
-
-**Status:** Approved for the DEV-006 implementation specification; no runtime code changes in this documentation update.
-
-**Existing room sensors:**
-- Retain the existing `heating_time_today` room sensors, their entity/unique IDs, hours unit, duration device class and `SensorStateClass.TOTAL`. Do **not** change to `TOTAL_INCREASING`.
-- Change the conversion from Minder's `runningTimeInSeconds` to hours rounded to **two decimal places** instead of one. Do not change the underlying raw value or polling frequency.
-- Preserve the existing optional Running Times feature toggle and multi-home/overlapping room-ID handling.
-
-**New home sensor:**
-- Add **Heating Time Today** to each Tado home device, using the **whole-home running-time total returned by the existing Minder response**, not a sum of room durations (which can overlap).
-- Use hours rounded to **two decimal places**, `SensorDeviceClass.DURATION`, `SensorStateClass.TOTAL`, and the existing running-times feature toggle. Assign a stable home-scoped unique ID and provide appropriate translations.
-- Reuse the already-fetched/cached running-times response. **No extra Minder API requests, new polling loop or increased polling frequency.** Check the actual response shape and semantics of the home total before implementation; the source's example structure contains `summary.totalRunningTimeInSeconds`, but this is not yet verified against live responses.
-- Preserve existing entities, dashboard behaviour and long-term statistics continuity. Document that the home duration measures the Minder-reported home total, not a sum of per-room durations.
-
-**Observed behaviour and validation:**
-- A user-provided Home Assistant history graph (12–17 November 2026) shows daily resets and infrequent upward steps, with no obvious intraday downward revisions. A state-history plot alone cannot distinguish unchanged Minder data from infrequent polling, nor guarantee the last pre-midnight reading is final.
-- Do not increase API polling based on the graph. Validate real response values, home/room semantics, midnight rollover, caching, feature disabled, two-home isolation, missing/invalid summary data, and historical/statistics compatibility.
-**Retrospective Minder comparison — decision gate for an optional Yesterday sensor:**
-- As a **read-only validation exercise**, request running-time data from Minder for several completed dates (using the existing date-range API), preferably including days for which Home Assistant has a final pre-midnight `Heating Time Today` value and an independent History Stats duration based on heating power > 0%.
-- For each selected room and date, compare: (1) the last `Heating Time Today` reading recorded before midnight, (2) the retrospective Minder result for that completed day, and (3) the History Stats estimate. Record the absolute and percentage differences, time of last reading, and any evidence of late server updates. Do not assume History Stats is a perfect ground truth.
-- Check whether retrospective Minder totals are materially more complete than the last pre-midnight readings. **If differences are absent or insignificant, do not implement a Yesterday sensor**; rely on existing Home Assistant history/statistics.
-- Only if a repeatable, meaningful improvement is demonstrated should a `Heating Time Yesterday` sensor be proposed for separate review, with explicit scope (room/home), update timing, quota impact, handling of unavailable data, and user approval **before implementation**. Do not add routine historical API polling as part of DEV-006.4 by default.
-- During the same read-only exercise, verify the actual home-level Minder summary field and its semantics (particularly whether it represents simultaneous home heating time rather than a sum of zone durations), before implementing the agreed home `Heating Time Today` sensor.
-- No correction or interpolation of today's reported running time is proposed; retain existing polling and source values.
-
-- Keep changes scoped to DEV-006 and include public documentation review before any release candidate.
-
-## DEV-006.3 — Room and whole-home schedule refresh actions (proposed, 14 November 2026)
-
-**Status:** Accepted for inclusion in the DEV-006 development specification; design and implementation pending. No runtime code changes are authorised by this specification entry.
-
-**Purpose:** Expose the existing Refresh Schedule button behaviour as callable Home Assistant actions, for consistent use in scripts and automations alongside room-level and whole-home schedule-profile save/restore actions.
-
-**Requested functionality:**
-- **Room-level Refresh Schedule action:** Accept a specific room using the established room-targeting conventions of existing schedule actions, including unambiguous home selection when multiple Tado homes contain overlapping room IDs. Reuse the current room Refresh Schedule button's implementation and refresh semantics rather than duplicate the refresh logic.
-- **Whole-home Refresh Schedule action:** Accept a selected Tado home using the same home-selection conventions as existing whole-home actions. Refresh schedules for all relevant rooms within that home, without affecting other homes. Support orchestration alongside whole-home schedule-profile save/restore actions.
-
-**Home-device dashboard controls (clarified 15 November 2026; specification only):**
-- Replicate the **three existing room-device control types** on each Tado home device, with identical interaction patterns but home-wide scope:
-  1. **Refresh Schedule** (button): refresh the schedules for every room in that home using the whole-home refresh action. Retain all existing room-level refresh buttons.
-  2. **Restore Schedule Profile** (select entity): present the same home-wide named profiles as the room selectors. Selecting a profile immediately invokes the existing `restore_schedule_profile_home` operation for that home and selected profile, restoring the per-room schedules/default fallbacks as already implemented.
-  3. **Save Schedule Profile** (select entity): present the same home-wide named profiles as the room selectors. Selecting a profile immediately invokes the existing `save_schedule_profile_home` operation for that home and selected profile, saving each room's live schedule under that name.
-- Both home-level selectors must include **Custom** for consistency with the room controls. Selecting **Custom** is a **silent no-op**: no save, restore, coordinator refresh or Tado API request. This is intentional because Custom denotes a status, not an actionable named profile. Invalid or unknown named profiles must still raise an explicit Home Assistant error. The existing room-level Restore and Save selectors were aligned with this rule immediately on `develop` (15 November 2026; `select.py`); the home-level controls remain for the full DEV-006 build.
-- **Do not add** a separate home-level profile-selection entity or separate Save/Restore buttons. The Save and Restore selectors themselves are the actions, exactly as on room devices.
-- Keep home-level profile options in sync with existing profile creation/deletion and each home's profile namespace; never cross home boundaries. Retain room-level selectors and their existing identities and behaviour.
-- Reuse the existing whole-home save/restore action implementations and the new whole-home refresh action. Preserve multi-home compatibility, error aggregation, quota efficiency and entity identity conventions. Check selection state, post-action feedback, profile-name validation and dashboard use in the full DEV-006 build.
-- **No implementation now:** this is a development specification for the later full DEV-006 build, not authorisation to modify integration code or release packages.
-
-**Implementation and compatibility constraints:**
-- Retain the existing Refresh Schedule button and all current action interfaces, entity IDs, unique IDs, configuration entries and profile behaviour.
-- Prefer shared coordinator/schedule-refresh functionality; avoid independent polling loops, duplicate API requests and unnecessary quota consumption. Assess whether sequential/batched refresh is needed for larger homes.
-- Define clear action schemas, room/home resolution, error handling and Home Assistant action descriptions; update translations and public action documentation when implemented.
-- Validate single-home and multi-home cases, including overlapping room IDs, room and home targeting, refresh completion, errors and API-call behaviour.
-
-**Release handling:** Candidate for the next release, subject to implementation, validation and the mandatory pre-release documentation review. No release version or date is assigned here.
-
-## DEV-006.1 — OpenTherm domestic hot-water setpoint (design review, 11 November 2026)
-
-Source contribution: PR #13 by @gmagniez (https://github.com/rleatherb/ha-tado-x-enhanced/pull/13), addressing issue #14. The contributor reports a successful live read of a 50 °C setpoint and write to 51 °C on an OpenTherm-connected TR04, confirmed in the Tado app. This is contributor-reported evidence, not maintainer verification.
-
-**Decision:** Accept the feature in principle, but do not merge the PR unchanged. It currently targets `main`, is reported by GitHub as conflicting, and was authored against an earlier baseline. Reconcile changes against the latest `develop` source and preserve v1.3.0 functionality.
-
-**Implementation design:**
-- Add a home-scoped Hot Water Temperature number entity only where the existing DHW state response exposes a valid setpoint and numeric, ordered constraints. Use the existing home-scoped Hops API client and `manualControl` POST; avoid extra periodic requests. Refresh after a successful write.
-- Preserve existing entity unique IDs, configuration entries and the Hot Water feature flag. New entity identity: `{home_id}_dhw_setpoint`. Capability and state must remain isolated per home.
-- Recognise `MANUAL_ON` and `MANUAL_OFF` as raw Hot Water State sensor values. Do not map them to Schedule, Boost or Off without validated semantics. For installations where relay mode control is unsupported, the mode selector must not imply it is usable.
-- Preserve relay-based Boost, Off, Resume Schedule and Hot Water Mode functionality on non-OpenTherm homes. An OpenTherm interface alone does not prove relay controls are unavailable. On setpoint-capable OpenTherm homes, default-disable unverified relay controls for newly registered entities, while respecting existing registrations and explicit user choices. Keep capability handling separate from Hot Water feature-flag reconciliation.
-- Validate finite numeric setpoint/limits, ordered bounds and accepted increments; handle missing or malformed API fields, write failures and read-back cleanly. Document setup-time capability discovery and reload requirements if a setpoint appears later.
-- Update relevant translations, entity documentation and changelog in the development baseline; no release version or date is assigned.
-
-**Validation plan:** Static/mocked checks for both home types, mixed-capability multi-home accounts, entity registry states, feature toggles, API errors and quotas. Maintainer to perform live regression on two non-OpenTherm homes, especially existing DHW controls and automations. Request contributor to verify the corrected development build on OpenTherm hardware, including setpoint read/write, reload and default-disabled controls. Do not claim live OpenTherm validation of the revised build until reported.
-
-No functional code has been changed or approved for release by this design record.
-
-**Maintainer live regression (11 November 2026):** The DEV-006.1 development ZIP was installed in both production non-OpenTherm homes. The maintainer reported 10/10 checks passed: Hot Water State, Hot Water Mode, Boost, Off, Resume Schedule, retained DHW entity IDs, absence of unexpected setpoint entities, climate and schedules, Holiday Mode and schedule profiles, and no new Tado X log errors or warnings. This is a functional non-OpenTherm regression result, not live OpenTherm verification. The contributor's updated-build verification is still pending.
 
 ## v1.2.0 release record
 
@@ -172,7 +58,7 @@ The v1.2.0 source was reviewed before editing. This documentation-only package c
 4. Check translations, Home Assistant action selectors and labels after user-facing changes.
 5. Measure or assess additional Tado API calls before introducing new polling or verification requests.
 
-These are ongoing development verification priorities, not claims that all scenarios were tested for `v1.3.0`.
+These are ongoing development verification priorities, not claims that all scenarios were tested for `v1.4.0`.
 
 ## Development rules
 
@@ -315,20 +201,102 @@ Following live maintainer testing of the four whole-home actions (successful sta
 Prepared a publication-ready candidate from the DEV-005 Marketplace Review development package. Version metadata and public documentation were reconciled with the 25 registered actions, the home profile status sensor, 0.1 °C selectors, the Holiday Mode polling default and the tested Marketplace migration procedure. Public DEV/Fix labels were removed; historical development notes above remain as an audit trail. The API Reset Time timestamp sensor remains unchanged by decision. Candidate status and any outstanding approval or live verification are recorded here rather than in public-facing release documentation.
 
 
-## DEV-006.2 — Accept depleted battery state (unreleased)
 
-- Based on original Exabird issue #72 and PR #87 (also reported as issue #85): Tado may return `DEPLETED` for a battery, while the Enhanced battery ENUM sensor only permitted `normal` and `low`, causing Home Assistant to reject the value.
-- Add `depleted` as a distinct allowed battery state; retain `normal` and `low` and existing sensor IDs/unique IDs. Add corresponding labels to `strings.json` and all five shipped translations (en, de, es, fr, it).
-- Extend `battery_low` binary sensor to report On for both `LOW` and `DEPLETED`, avoiding a false Off when the battery is exhausted. Add simulated production-lambda regression coverage for both sensor types and translation consistency. No Tado API changes, additional polling or entity migration.
-- Implemented on isolated branch `fix/dev-0062-depleted-battery` from `develop`, separately from the frozen DEV-006.1 OpenTherm validation branch. Live Home Assistant testing with an actual depleted battery remains outstanding.
+### DEV-006.3 validation iteration 4 (local test package)
+
+- Established descriptive unique IDs for the three newly introduced home-device schedule controls, to generate distinct entity IDs on fresh registration. Existing room entities and all service action names are unchanged.
+- Clarified that saving profiles already reads fresh Home and Away data per room, with no prerequisite refresh.
+- Device-registry correction from iteration 3 retained. Home Assistant runtime verification pending.
+
+## DEV-006.4 — Temporary Minder response diagnostic (19 November 2026)
+
+- Test-only `tado_x.inspect_running_times` action returns the raw Minder response for a selected Tado X Home and optional inclusive date range (defaults to today; maximum 31 days). One explicit read-only API request per invocation; no new background polling or persistent data. A Home device must be selected when multiple homes are configured.
+- This diagnostic exists solely to verify the actual home-level Minder summary structure and support retrospective comparisons before implementing the home Heating Time Today sensor.
+- **Remove the action, schema, handler and `services.yaml` entry before a public release.** The current ZIP is for live diagnostic testing only. No heating sensor behaviour has been changed yet.
+
+## DEV-006.4 — Heating durations validation package (19 November 2026)
+
+- Two-decimal existing room duration, new home duration from Minder summary, new room-ID diagnostic sensor, and three read-only response actions implemented for Home Assistant validation. The temporary `inspect_running_times` action is replaced by `get_running_times`.
+- The maintainer's real Minder response for home 2243481 (2026-11-19) confirmed `summary.totalRunningTimeInSeconds` and matching daily home `runningTimeInSeconds`. Retrospective queries have been observed to exceed the final daily maximum in Home Assistant history. No automated Yesterday sensor or additional routine polling is added.
+- Validation so far: static Python/JSON/YAML and ZIP checks only. Live Home Assistant testing of the new actions, entities, date-range response shape, and multi-home behaviour remains outstanding.
+
+### DEV-006.4 validation iteration 2 — response simplification (19 November 2026)
+
+- Maintainer confirmed existing room sensor precision, home sensor, room-ID diagnostic sensor, all three actions, single-room comparisons, and both-home isolation in Home Assistant.
+- Simplified all three action responses to seconds only; removed rounded `running_time_hours`.
+- Detailed `get_running_times` now returns the original Minder structure, adding `name` to known zones only, without duplicating processed and raw data.
+- No changes to polling, sensors, or API request counts. Runtime testing of iteration 2 remains outstanding.
 
 
-## DEV-006.3 — Whole-home schedule controls, validation complete (19 November 2026)
+### DEV-006.6 experimental identification validation package (19 November 2026)
 
-- Added `refresh_schedule` and `refresh_schedule_home` actions, retaining the room refresh button's on-demand comparison and using the existing whole-home eligibility checks, sequential execution, aggregated error reporting and one final coordinator refresh.
-- Added Tado X Home device controls **Refresh all room schedules**, **Restore all room schedules** and **Save all room schedules as**. The latter two reuse the existing whole-home save/restore actions. Selecting `Custom` is a no-op. Separate translation keys and descriptions were added for the home controls across `strings.json` and all five shipped translations.
-- Established descriptive unique IDs for the three newly introduced home controls. Old temporary test entity IDs can be deleted manually; existing room entity identities and service action interfaces are unchanged.
-- Resolved Home Assistant deprecations: `DeviceEntry.config_entries` replaced with `config_entry_id`; new controls resolve their associated device ID through the entity registry, rather than deprecated or unreliable device-identifier lookups. The separately maintained `climate_template` warnings are outside this integration.
-- Confirmed that saving each room profile already reads a fresh Home schedule and Away configuration from the Tado API. No preceding refresh or additional duplicate API calls are required; failure to retrieve/validate live data prevents overwriting that room's saved profile. README and schedule/entity documentation updated.
-- **Maintainer live Home Assistant test:** Iteration 4 passed startup, correct control names, refresh/save/restore operations, both-home isolation and absence of the reported Tado X deprecation/device-registry errors. This is real-world validation reported by the maintainer, not an automated CI test. Earlier iterations identified and corrected the device lookup issue. DEV-006.1 OpenTherm remains separate and unmerged.
-- The validated complete package is `Tado_X_Enhanced_DEV-006.3_Validation_Iteration_4.zip`. Its source and documentation are the development baseline for subsequent DEV-006 work. This is **not** a published release or release candidate; the next release requires the mandatory complete public-documentation consistency review and release validation.
+- Added an experimental `tado_x.identify_device` response action to the DEV-006.4 validated baseline. It selects an existing Tado X physical-device entity, validates home ownership and model (VA04/RU04/IB02), and issues one GraphQL identify mutation. It returns success status but hardware blinking must be confirmed independently.
+- No physical-device buttons are included yet; the API endpoint and mutation remain unverified on actual Tado X hardware. No automatic identification or extra background polling.
+- If the experiment fails, remove the action and API method before publication. If successful, retain the action and implement buttons only for confirmed device types.
+
+### DEV-006.6 device selector correction
+
+The experimental identify_device action now selects a physical device_id instead of an entity_id. The device registry identifier is matched against the owning home coordinator’s serial-number dictionary; room and Home devices are rejected. No API or polling changes.
+
+### DEV-006.6 — Final metadata investigation (temporary test build)
+- VA04 and IB02 identify requests returned `NOT_FOUND` in live tests.
+- Temporary `inspect_device_metadata` action performs one read-only `roomsAndDevices` request and returns field names/types for a selected physical device; no serials, identifiers, or credentials.
+- Remove diagnostic action before publication. No additional background polling.
+
+### DEV-006.6 — Metadata follow-up (19 November 2026)
+
+- Live VA04 and IB02 metadata revealed a boolean `supportsIdentify` field; previous diagnostic returned only field types.
+- This test iteration returns the actual `supports_identify` boolean (or null if missing/invalid) without exposing serial numbers or credentials.
+- Added `SU04` (Temperature Sensor X, used as a wireless room temperature sensor/thermostat) to the **experimental** `identify_device` device-type allowlist, alongside VA04, RU04 and IB02. This is not evidence that the GraphQL identification request works for SU04.
+- No new automatic polling. `inspect_device_metadata` remains a read-only, on-demand API request. No permanent Blink Display buttons have been added.
+
+### DEV-006.6 — HOPS identification experiment (19 November 2026)
+
+- Experimental `tado_x.identify_device` checks the selected physical device's live `supportsIdentify` field and, only if true, sends a single `POST` to candidate HOPS path `/homes/{home_id}/roomsAndDevices/devices/{serial}/identify`.
+- **Endpoint is inferred, not verified.** Test with one VA04 first; HTTP success also requires physical confirmation.
+- Previous GraphQL experiment returned `NOT_FOUND` for VA04 and IB02; no GraphQL fallback.
+- On-demand action performs one read-only metadata GET and one POST; no scheduled requests, button entities, or device setting changes. Shared transport retains its existing 401 authentication retry.
+
+### DEV-006.6 — GraphQL LINE_X and capability-driven test
+
+- Official Tado web application network capture established the working `identifyDevice` GraphQL mutation and `{home_id}:LINE_X:{serial}` identifier for a VA04 device. The previous `PRE_LINE_X` identifier returned `NOT_FOUND`; the experimental HOPS `/identify` endpoint returned HTTP 404.
+- Restored GraphQL using `LINE_X`. Store `supportsIdentify` in `TadoXDevice` from the existing coordinator `roomsAndDevices` response for room and other devices; default false. The action uses the stored capability without additional API reads and without a device-type allowlist.
+- No buttons yet. Test the existing physical-device action with a VA04 first, then other capability-advertising devices. GraphQL success and physical display response both require confirmation.
+
+### DEV-006.6 — Permanent identification buttons (20 November 2026)
+
+The maintainer confirmed `identify_device` returned `success: true` and the physical displays flashed for VA04 and SU04 in home 2243481 using GraphQL `LINE_X`. The permanent implementation creates physical-device **Blink Display** buttons for cached `supportsIdentify: true` devices, retains the action without experimental labelling and removes the temporary `inspect_device_metadata` action. The new buttons require live Home Assistant testing. No automatic API requests, configuration migrations, or existing entity identity changes. Earlier experimental notes remain as history.
+
+## DEV-006.5A — Coordinator health diagnostics (20 November 2026)
+
+Baseline: DEV-006.6 Blink Display Final Fixes; maintainer confirmed button/icon/action tests. Issue #16 root cause remains unconfirmed. Instrument actual coordinator fetches, distinguish cached rate-limit returns from fresh snapshots, record timing/counters and existing isolated optional failures, add per-home diagnostic sensor with independent 30-second local watchdog and transition logging. No additional API requests or changes to command, failure, or retry semantics. Staleness threshold is max(90 seconds, three main intervals); error categories are exception class names only. Post-command attribution and optional failure isolation are deferred to B/C. Sensor watchdog runs while entity is enabled and loaded. Live testing outstanding.
+
+### DEV-006.5A — Live validation (20 November 2026)
+
+Maintainer reported PASS for all eight tests: installation, entity registration on both homes, normal operation, attribute updates, polling configuration, command refreshes, diagnostic logging and independent integration reload. Exceptional conditions were not deliberately induced live.
+
+## DEV-006.5B — Refresh reliability (20 November 2026)
+
+Ordinary optional request or parsing failures retain cached values and permit fresh core snapshots. Existing polling cadence is unchanged; running-time cache remains same-day only. Authentication and HTTP 429 exceptions propagate from optional requests to whole-update handlers. Rate limiting returns a replacement cached snapshot without advancing fresh-success timestamps. Repeated 401 after token refresh triggers authentication failure. Mandatory API response shapes are validated. Optional warning logs report error-category transitions. No added polling or automatic reloads. Simulated regression and static checks passed; live validation outstanding. Issue #16 root cause remains unconfirmed.
+
+### DEV-006.5B — Live validation
+
+Maintainer reported PASS for all applicable live checks (installation, health, heating data and commands, hot water, weather, supplementary data, polling/API usage, multi-home independence). Mobile device monitoring was not used and remains unverified live.
+
+## DEV-006.5C — Post-command refresh monitoring
+
+Track existing post-command coordinator requests with a per-home sequence. A fetch must start after the latest request to resolve it; requests made before the same fetch are coalesced. An already-running fetch cannot resolve a later request. Record pending, success, degraded, error, rate_limited, authentication_required or cancelled; normal read-only refreshes and holiday boundary refreshes are not labelled as commands. A subsequent scheduled fetch can resolve a pending request. Refresh request exceptions are logged separately from successful writes; cancellation propagates. No added API calls. Existing dedicated schedule/holiday read-back operations are unchanged. Static and simulated attribution tests passed; live validation pending. Issue #16 root cause remains unconfirmed.
+
+## v1.4.0 pre-release consolidation — 20 November 2026
+
+All DEV-006 work packages accepted for intended release. OpenTherm implementation restored from DEV-006.1 Relay Validation v2; contributor @gmagniez reported setpoint discovery/read/write/app synchronisation and MANUAL_ON, with a relay resume 404. The follow-up default-disablement guard is retained and extended to options reconciliation. Existing enabled entries and user choices are preserved. Live OpenTherm retest remains outstanding. Depleted battery handling accepted on narrow scope and standalone tests; physical exhaustion not tested. DEV-006.5A: eight live checks passed; 5B: nine applicable checks passed, mobile devices not tested; 5C: eleven live checks passed. Issue #16 root cause remains unconfirmed.
+
+Setpoint constraints now travel with cached hot-water data and writes use command refresh monitoring. Historical test fixtures and action counts updated; all standalone scripts executed successfully. The merged package requires live non-OpenTherm regression testing and the full documentation audit before release candidate preparation.
+
+## v1.4.0 release candidate review — 20 November 2026
+
+Maintainer reported PASS for CON.1–CON.10 (installation, non-OpenTherm compatibility, capability detection, hot water, options, health, heating controls, schedule management, other enhancements and multi-home independence). The maintainer reported successful live tests of schedule controls, heating durations, device identification, coordinator diagnostics and command refreshes, and all ten combined-system checks on two non-OpenTherm homes. OpenTherm setpoint operation was reported working by an external tester; the latest relay-control default-disablement behaviour has not been confirmed on OpenTherm hardware. Physical battery depletion and mobile device monitoring were not live-tested. Exceptional API failure conditions have simulated coverage. The root cause of [issue #16](https://github.com/rleatherb/ha-tado-x-enhanced/issues/16) remains unconfirmed.
+
+Hot-water temperature control builds on [upstream PR #74 by lchovanec](https://github.com/exabird/ha-tado-x/pull/74), with integration testing and feedback from [@gmagniez](https://github.com/gmagniez). Depleted-battery handling addresses [upstream issue #72](https://github.com/exabird/ha-tado-x/issues/72) and [PR #87 by @Somberland](https://github.com/exabird/ha-tado-x/pull/87).
+
+RC1 used the validated consolidation code unchanged except for the manifest version. The subsequent documentation review reorganised README, added action version history, expanded entity and diagnostic guidance, updated examples and adopted the maintainer’s revised schedule guide. This documentation-only review does not constitute new live testing.

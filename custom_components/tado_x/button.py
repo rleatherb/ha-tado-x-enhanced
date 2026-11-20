@@ -15,10 +15,13 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .api import TadoXApiError
 from .const import DOMAIN, FEATURE_ENTITY_MAP
 from .coordinator import TadoXDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+_RELAY_DHW_KEYS = frozenset({"boost_hot_water", "disable_hot_water", "resume_hot_water_schedule"})
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -85,6 +88,10 @@ async def async_setup_entry(
     for room_id in coordinator.data.rooms:
         entities.append(TadoXScheduleRefreshButton(coordinator, room_id))
 
+    for serial, physical_device in coordinator.data.devices.items():
+        if physical_device.supports_identify:
+            entities.append(TadoXIdentifyDeviceButton(coordinator, serial))
+
     entities.append(TadoXHomeScheduleRefreshButton(coordinator))
     entities.append(TadoXHolidayRefreshButton(coordinator))
     async_add_entities(entities)
@@ -109,6 +116,19 @@ async def async_setup_entry(
         if not entity_entry.unique_id:
             continue
         
+        # A new OpenTherm relay entity is integration-disabled by default.
+        # Preserve that default while Hot Water is enabled, but allow the
+        # normal feature-flag path to act when Hot Water is disabled.
+        # Do not override previously enabled registry entries: these may
+        # reflect explicit existing user choices.
+        if (
+            coordinator.enable_hot_water
+            and coordinator.data
+            and coordinator.data.dhw_relay_actions_unverified
+            and any(entity_entry.unique_id == f"{coordinator.home_id}_{key}" for key in _RELAY_DHW_KEYS)
+        ):
+            continue
+
         # Check if this entity matches a disabled feature
         should_be_disabled = False
         for feature_flag, entity_keys in FEATURE_ENTITY_MAP.items():
@@ -154,6 +174,12 @@ class TadoXButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{coordinator.home_id}_{description.key}"
+        if (
+            description.key in _RELAY_DHW_KEYS
+            and coordinator.data
+            and coordinator.data.dhw_relay_actions_unverified
+        ):
+            self._attr_entity_registry_enabled_default = False
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -168,7 +194,7 @@ class TadoXButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
     async def async_press(self) -> None:
         """Handle the button press."""
         await self.entity_description.press_fn(self.coordinator)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
 
 async def refresh_room_schedule(
@@ -278,3 +304,39 @@ class TadoXHolidayRefreshButton(CoordinatorEntity[TadoXDataUpdateCoordinator], B
     async def async_press(self) -> None:
         await self.coordinator.holiday_mode_manager.refresh(source="button")
         await self.coordinator.async_request_refresh()
+
+
+class TadoXIdentifyDeviceButton(CoordinatorEntity[TadoXDataUpdateCoordinator], ButtonEntity):
+    """Identify a supported physical Tado X device without refreshing state."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "blink_display"
+    _attr_name = "Blink Display"
+    _attr_icon = "mdi:flash"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: TadoXDataUpdateCoordinator, serial: str) -> None:
+        super().__init__(coordinator)
+        self._serial = serial
+        self._attr_unique_id = f"{coordinator.home_id}_{serial}_blink_display"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Attach the button to the existing physical device registry entry."""
+        return DeviceInfo(identifiers={(DOMAIN, self._serial)})
+
+    @property
+    def available(self) -> bool:
+        """Only allow identification while the capability is advertised."""
+        device = self.coordinator.data.devices.get(self._serial)
+        return super().available and device is not None and device.supports_identify
+
+    async def async_press(self) -> None:
+        """Send the tested one-shot identification mutation."""
+        device = self.coordinator.data.devices.get(self._serial)
+        if device is None or not device.supports_identify:
+            raise HomeAssistantError("Selected device does not advertise identification support")
+        try:
+            await self.coordinator.api.identify_device(self._serial)
+        except TadoXApiError as err:
+            raise HomeAssistantError(f"Identify device failed: {err}") from err

@@ -296,6 +296,21 @@ class TadoXOptionsFlow(OptionsFlow):
                 if entity_entry.disabled_by not in (None, er.RegistryEntryDisabler.INTEGRATION):
                     continue
 
+                # Preserve the OpenTherm default disablement of relay controls.
+                if (
+                    feature_flag == "enable_hot_water"
+                    and feature_enabled
+                    and coordinator.data
+                    and coordinator.data.dhw_relay_actions_unverified
+                    and entity_entry.unique_id in {
+                        f"{coordinator.home_id}_{key}" for key in (
+                            "dhw_mode", "boost_hot_water", "disable_hot_water",
+                            "resume_hot_water_schedule",
+                        )
+                    }
+                ):
+                    continue
+
                 # Check if this entity's unique_id ends with the feature key
                 if entity_entry.unique_id:
                     # unique_id format is like: "123456_dhw_state" for sensors or "123456_boost_hot_water" for buttons

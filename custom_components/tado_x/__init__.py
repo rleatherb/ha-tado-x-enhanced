@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Final
 
 import voluptuous as vol
@@ -91,6 +91,7 @@ SERVICE_RESTORE_PROFILE_DEFAULT = "restore_schedule_profile_default"
 SERVICE_RESET_DEFAULT = "reset_schedule_default"
 SERVICE_SET_SCHEDULE: Final = "set_schedule"
 SERVICE_GET_DAY_REPORT: Final = "get_day_report"
+SERVICE_IDENTIFY_DEVICE: Final = "identify_device"
 ATTR_DAY_TYPE: Final = "day_type"
 ATTR_SCHEDULE: Final = "schedule"
 
@@ -138,6 +139,8 @@ SERVICE_SET_EIQ_TARIFF_SCHEMA = vol.Schema(
         vol.Optional(ATTR_HOME_DEVICE_ID): cv.string,
     }
 )
+
+SERVICE_IDENTIFY_DEVICE_SCHEMA = vol.Schema({vol.Required(ATTR_DEVICE_ID): cv.string})
 
 SERVICE_SET_CLIMATE_TIMER_SCHEMA = vol.Schema(
     {
@@ -210,6 +213,24 @@ SERVICE_SET_AWAY_SCHEDULE_SCHEMA = vol.Schema(
         vol.Optional("preheating_level"): vol.In(["OFF", "ECO", "BALANCE", "COMFORT"]),
     }
 )
+
+# Historical Minder running-time actions. Each execution makes one read-only request.
+SERVICE_GET_RUNNING_TIMES: Final = "get_running_times"
+SERVICE_GET_ROOM_RUNNING_TIME: Final = "get_room_running_time"
+SERVICE_GET_HOME_RUNNING_TIME: Final = "get_home_running_time"
+SERVICE_GET_RUNNING_TIMES_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_HOME_DEVICE_ID): cv.string,
+    vol.Optional("from_date"): cv.string,
+    vol.Optional("to_date"): cv.string,
+})
+SERVICE_GET_ROOM_RUNNING_TIME_SCHEMA = vol.Schema({
+    vol.Required(ATTR_ENTITY_ID): cv.entity_id,
+    vol.Optional(ATTR_DATE): cv.string,
+})
+SERVICE_GET_HOME_RUNNING_TIME_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_HOME_DEVICE_ID): cv.string,
+    vol.Optional(ATTR_DATE): cv.string,
+})
 
 SERVICE_GET_DAY_REPORT_SCHEMA = vol.Schema(
     {
@@ -549,10 +570,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 _LOGGER.warning("%s failed for home %s %s: %s", action, service_coordinator.home_id, label, err)
                 failures.append(f"{label}: {err}")
         if refresh and successes:
-            try:
-                await service_coordinator.async_request_refresh()
-            except Exception as err:
-                failures.append(f"Home state refresh: {err}")
+            await service_coordinator.async_request_command_refresh()
         _LOGGER.info("%s for home %s: %d succeeded, %d failed/skipped; successful rooms: %s",
                      action, service_coordinator.home_id, len(successes), len(failures), ", ".join(successes))
         if failures:
@@ -701,7 +719,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         try:
             await service_coordinator.api.set_temperature_offset(device_serial, offset)
-            await service_coordinator.async_request_refresh()
+            await service_coordinator.async_request_command_refresh()
             _LOGGER.info(
                 "Set temperature offset for device %s to %.1f°C",
                 device_serial,
@@ -851,7 +869,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 termination_type=termination_type,
                 duration_seconds=duration_seconds,
             )
-            await service_coordinator.async_request_refresh()
+            await service_coordinator.async_request_command_refresh()
             _LOGGER.info(
                 "Set %s to %.1f°C with termination %s (duration %s minutes, home %s, room %s)",
                 entity_id,
@@ -871,6 +889,52 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             SERVICE_SET_CLIMATE_TIMER,
             async_set_climate_timer,
             schema=SERVICE_SET_CLIMATE_TIMER_SCHEMA,
+        )
+
+    async def async_identify_device(call: ServiceCall) -> dict[str, Any]:
+        """Identify one physical device selected from the HA device registry."""
+        device = dr.async_get(hass).async_get(call.data[ATTR_DEVICE_ID])
+        if device is None:
+            raise HomeAssistantError("Selected device is not registered")
+        # Resolve by the physical serial identifier and the owning config entry.
+        # A room or home device has no serial present in coordinator.data.devices.
+        matches = []
+        for entry_id in device.config_entries:
+            try:
+                candidate = get_coordinator_for_config_entry(entry_id)
+            except (HomeAssistantError, KeyError):
+                continue
+            serials = {
+                identifier for domain, identifier in device.identifiers
+                if domain == DOMAIN and identifier in candidate.data.devices
+            }
+            for serial_candidate in serials:
+                matches.append((candidate, serial_candidate))
+        if len(matches) != 1:
+            raise HomeAssistantError(
+                "Select one physical Tado X valve, thermostat, temperature sensor or bridge device"
+            )
+        coordinator, serial = matches[0]
+        physical_device = coordinator.data.devices[serial]
+        if not physical_device.supports_identify:
+            raise HomeAssistantError(
+                "Selected device does not advertise identification support"
+            )
+        try:
+            result = await coordinator.api.identify_device(serial)
+        except TadoXApiError as err:
+            raise HomeAssistantError(f"Identify device failed: {err}") from err
+        return {
+            "success": result["success"],
+            "device_type": physical_device.device_type,
+            "home_id": coordinator.home_id,
+        }
+
+    if not hass.services.has_service(DOMAIN, SERVICE_IDENTIFY_DEVICE):
+        hass.services.async_register(
+            DOMAIN, SERVICE_IDENTIFY_DEVICE, async_identify_device,
+            schema=SERVICE_IDENTIFY_DEVICE_SCHEMA,
+            supports_response=SupportsResponse.ONLY,
         )
 
     def resolve_room(entity_id: str) -> tuple[TadoXDataUpdateCoordinator, int]:
@@ -966,7 +1030,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _validate_schedule_blocks(day_type, day_schedule)
         try:
             await service_coordinator.api.set_zone_schedule(room_id, day_type, day_schedule)
-            await service_coordinator.async_request_refresh()
+            await service_coordinator.async_request_command_refresh()
             _LOGGER.info("Schedule updated for room %s (%s)", room_id, day_type)
         except TadoXApiError as err:
             raise HomeAssistantError(f"Failed to set schedule: {err}") from err
@@ -1035,6 +1099,142 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not hass.services.has_service(DOMAIN, service_name):
             hass.services.async_register(DOMAIN, service_name, handler, schema=schema, supports_response=response)
 
+    def _running_time_date(value: str | None, default: date) -> date:
+        if not value:
+            return default
+        try:
+            result = date.fromisoformat(value)
+        except (TypeError, ValueError) as err:
+            raise HomeAssistantError("Date must use YYYY-MM-DD format") from err
+        if result > dt_util.now().date():
+            raise HomeAssistantError("Future dates cannot be queried")
+        return result
+
+    def _duration(seconds: Any) -> dict[str, Any]:
+        """Preserve missing data as null, rather than treating it as zero."""
+        if isinstance(seconds, bool) or not isinstance(seconds, (int, float)) or seconds < 0:
+            return {"running_time_seconds": None}
+        return {"running_time_seconds": seconds}
+
+    async def _fetch_running_times(coordinator, start: date, end: date) -> dict[str, Any]:
+        if end < start:
+            raise HomeAssistantError("from_date must not be later than to_date")
+        if (end - start).days > 30:
+            raise HomeAssistantError("Select a range of at most 31 days")
+        try:
+            response = await coordinator.api.get_running_times(start.isoformat(), end.isoformat())
+        except TadoXApiError as err:
+            raise HomeAssistantError(f"Failed to get Minder running times: {err}") from err
+        if not isinstance(response, dict):
+            raise HomeAssistantError("Minder returned an invalid running-times response")
+        return response
+
+    def _running_time_days(coordinator, response: dict[str, Any]) -> list[dict[str, Any]]:
+        """Annotate each returned date with home-scoped room names."""
+        days = []
+        entries = response.get("runningTimes")
+        if not isinstance(entries, list):
+            return days
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            rooms = []
+            for zone in entry.get("zones", []):
+                if not isinstance(zone, dict):
+                    continue
+                room_id = zone.get("id")
+                room = coordinator.data.rooms.get(room_id)
+                rooms.append({
+                    "room_id": room_id,
+                    "room_name": room.name if room else None,
+                    **_duration(zone.get("runningTimeInSeconds")),
+                })
+            days.append({
+                "start_time": entry.get("startTime"),
+                "end_time": entry.get("endTime"),
+                **_duration(entry.get("runningTimeInSeconds")),
+                "rooms": rooms,
+            })
+        return days
+
+    async def async_get_running_times(call: ServiceCall) -> dict[str, Any]:
+        coordinator = get_home_coordinator(call)
+        today = dt_util.now().date()
+        start = _running_time_date(call.data.get("from_date"), today)
+        end = _running_time_date(call.data.get("to_date"), start)
+        response = await _fetch_running_times(coordinator, start, end)
+        # Preserve the Minder response shape and precision; add only room names.
+        # Copy the response to avoid modifying any API-owned data.
+        result = dict(response)
+        entries = response.get("runningTimes")
+        if isinstance(entries, list):
+            result["runningTimes"] = []
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    result["runningTimes"].append(entry)
+                    continue
+                dated = dict(entry)
+                zones = entry.get("zones")
+                if isinstance(zones, list):
+                    dated["zones"] = []
+                    for zone in zones:
+                        if not isinstance(zone, dict):
+                            dated["zones"].append(zone)
+                            continue
+                        annotated = dict(zone)
+                        room = coordinator.data.rooms.get(zone.get("id"))
+                        if room is not None:
+                            annotated["name"] = room.name
+                        dated["zones"].append(annotated)
+                result["runningTimes"].append(dated)
+        return result
+
+    async def async_get_room_running_time(call: ServiceCall) -> dict[str, Any]:
+        coordinator, room_id = resolve_room(call.data[ATTR_ENTITY_ID])
+        day = _running_time_date(call.data.get(ATTR_DATE), dt_util.now().date())
+        response = await _fetch_running_times(coordinator, day, day)
+        days = _running_time_days(coordinator, response)
+        if len(days) != 1:
+            raise HomeAssistantError("Minder did not return exactly one day")
+        match = next((room for room in days[0]["rooms"] if room["room_id"] == room_id), None)
+        if match is None or match["running_time_seconds"] is None:
+            raise HomeAssistantError(f"No valid Minder running time for room {room_id} on {day}")
+        return {
+            "home_id": coordinator.home_id,
+            "room_id": room_id,
+            "room_name": coordinator.data.rooms[room_id].name,
+            "date": day.isoformat(),
+            **_duration(match["running_time_seconds"]),
+            "last_updated": response.get("lastUpdated"),
+        }
+
+    async def async_get_home_running_time(call: ServiceCall) -> dict[str, Any]:
+        coordinator = get_home_coordinator(call)
+        day = _running_time_date(call.data.get(ATTR_DATE), dt_util.now().date())
+        response = await _fetch_running_times(coordinator, day, day)
+        summary = response.get("summary")
+        seconds = summary.get("totalRunningTimeInSeconds") if isinstance(summary, dict) else None
+        if _duration(seconds)["running_time_seconds"] is None:
+            raise HomeAssistantError(f"No valid Minder home running time on {day}")
+        return {
+            "home_id": coordinator.home_id,
+            "home_name": coordinator.data.home_name,
+            "date": day.isoformat(),
+            **_duration(seconds),
+            "last_updated": response.get("lastUpdated"),
+        }
+
+    for service_name, handler, schema in (
+        (SERVICE_GET_RUNNING_TIMES, async_get_running_times, SERVICE_GET_RUNNING_TIMES_SCHEMA),
+        (SERVICE_GET_ROOM_RUNNING_TIME, async_get_room_running_time, SERVICE_GET_ROOM_RUNNING_TIME_SCHEMA),
+        (SERVICE_GET_HOME_RUNNING_TIME, async_get_home_running_time, SERVICE_GET_HOME_RUNNING_TIME_SCHEMA),
+    ):
+        if not hass.services.has_service(DOMAIN, service_name):
+            hass.services.async_register(
+                DOMAIN, service_name, handler, schema=schema,
+                supports_response=SupportsResponse.ONLY,
+            )
+
     async def async_get_day_report(call: ServiceCall) -> dict[str, Any]:
         """Return the historical day report for a room."""
         service_coordinator, room_id = resolve_room(call.data[ATTR_ENTITY_ID])
@@ -1094,7 +1294,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 end_date=holiday_action_datetime(call.data.get(ATTR_END_DATE)),
             )
             await service_coordinator.holiday_mode_manager.refresh(source="action")
-            await service_coordinator.async_request_refresh()
+            await service_coordinator.async_request_command_refresh()
             _LOGGER.info("Holiday mode set to %s", call.data[ATTR_ENABLED])
         except TadoXApiError as err:
             raise HomeAssistantError(f"Failed to set holiday mode: {err}") from err

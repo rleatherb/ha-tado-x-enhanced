@@ -524,6 +524,18 @@
       }
     },
     "sensor": {
+      "coordinator_health": {
+        "name": "État du coordinateur",
+        "state": {
+          "initialising": "Initialisation",
+          "healthy": "Sain",
+          "degraded": "Dégradé",
+          "stale": "Obsolète",
+          "error": "Erreur",
+          "rate_limited": "Limite de requêtes atteinte",
+          "authentication_required": "Authentification requise"
+        }
+      },
       "temperature": {
         "name": "Température"
       },
@@ -666,6 +678,9 @@
       },
       "api_theoretical_daily_usage": {
         "name": "Utilisation quotidienne théorique de l’API"
+      },
+      "room_id": {
+        "name": "ID de pièce Tado"
       }
     },
     "binary_sensor": {
@@ -705,6 +720,9 @@
       },
       "timer_duration": {
         "name": "Durée de la minuterie"
+      },
+      "dhw_setpoint": {
+        "name": "Température de l’eau chaude"
       }
     },
     "button": {
@@ -734,6 +752,9 @@
       },
       "refresh_schedule_home": {
         "name": "Actualiser tous les programmes des pièces"
+      },
+      "blink_display": {
+        "name": "Faire clignoter l’écran"
       }
     },
     "select": {

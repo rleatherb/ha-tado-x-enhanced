@@ -524,6 +524,18 @@
       }
     },
     "sensor": {
+      "coordinator_health": {
+        "name": "Estado del coordinador",
+        "state": {
+          "initialising": "Inicializando",
+          "healthy": "Correcto",
+          "degraded": "Degradado",
+          "stale": "Desactualizado",
+          "error": "Error",
+          "rate_limited": "Límite de solicitudes alcanzado",
+          "authentication_required": "Autenticación requerida"
+        }
+      },
       "temperature": {
         "name": "Temperatura"
       },
@@ -666,6 +678,9 @@
       },
       "api_theoretical_daily_usage": {
         "name": "Uso diario teórico de API"
+      },
+      "room_id": {
+        "name": "ID de habitación Tado"
       }
     },
     "binary_sensor": {
@@ -705,6 +720,9 @@
       },
       "timer_duration": {
         "name": "Duración del temporizador"
+      },
+      "dhw_setpoint": {
+        "name": "Temperatura del agua caliente"
       }
     },
     "button": {
@@ -734,6 +752,9 @@
       },
       "refresh_schedule_home": {
         "name": "Actualizar todos los horarios de las habitaciones"
+      },
+      "blink_display": {
+        "name": "Hacer parpadear la pantalla"
       }
     },
     "select": {

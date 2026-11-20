@@ -416,7 +416,7 @@ class ProfileManager:
             # This updates all room sensors and climate attributes together.
             try:
                 if refresh:
-                    await self.coordinator.async_request_refresh()
+                    await self.coordinator.async_request_command_refresh()
             except Exception as err:
                 _LOGGER.warning(
                     "Profile %s restored for home %s room %s, but immediate "

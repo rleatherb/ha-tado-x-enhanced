@@ -1,6 +1,6 @@
 # Tado X Enhanced — Technical Architecture
 
-**Documented version:** Tado X Enhanced `1.3.0`  
+**Documented version:** Tado X Enhanced `1.4.0`  
 **Implementation source:** `custom_components/tado_x/` in this repository  
 **Integration domain:** `tado_x`  
 **Repository:** https://github.com/rleatherb/ha-tado-x-enhanced  
@@ -113,6 +113,8 @@ Optional feature flags control additional data retrieval and entity availability
 
 These are per-home options. Defaults are influenced by the configured Auto-Assist status. Enabling additional datasets may increase API consumption. Mobile Devices and Domestic Hot Water use the main coordinator interval. Weather, Air Comfort, Heating Running Times, Flow Temperature and Holiday Mode use a per-home supplementary multiplier (1×, 2×, 5× or 10× the main interval, default 5×). Supplementary datasets are cached between eligible checks. Holiday Mode retains a separate manager for initial/manual/action reads and scheduled boundary callbacks, but no independent periodic timer. Its independent enable checkbox controls participation in supplementary polling; disabling it does not disable initial, manual, action-triggered or boundary reads. Flow Temperature actions invalidate the cache to read back the changed settings promptly. The `tado_x.set_polling_options` action and the options flow use the same live configuration update path; the action resolves an optional Tado X Home device, defaulting to the only configured home when unambiguous.
 
+Each home also has a **Coordinator Health** diagnostic sensor. It tracks actual fetch attempts, fresh successes, optional failures, command refresh attribution and staleness. Its independent 30-second local watchdog runs while enabled and loaded, with no additional API calls. See [Coordinator Health](ENTITIES.md#coordinator-health) for attributes and troubleshooting.
+
 **Schedule polling is separate from main coordinator polling.** The profile manager checks Home and Away configurations at an independently configured interval: 900–86,400 seconds, default 3,600 seconds. Automatic schedule checking defaults on for Auto-Assist configurations and off otherwise, subject to saved options. A full comparison ordinarily requires approximately **two schedule API requests per room**. Manual schedule refresh and profile actions remain available when automatic checking is disabled.
 
 ## 7. Climate and room controls
@@ -146,14 +148,15 @@ Away configuration is stored separately from the weekly Home schedule and includ
 
 ### 8.1 Registered actions
 
-The source defines **25** `tado_x` actions:
+The source defines **31** `tado_x` actions:
 
 | Area | Actions |
 |---|---|
 | Existing/extended controls | `set_temperature_offset`, `add_meter_reading`, `set_eiq_tariff`, `set_climate_timer`, `set_climate_timer_home`, `set_hvac_mode_home` |
-| Home/Away schedules | `get_schedule`, `set_schedule`, `get_away_schedule`, `set_away_schedule`, `set_away_schedule_home` |
+| Home/Away schedules | `refresh_schedule`, `refresh_schedule_home`, `get_schedule`, `set_schedule`, `get_away_schedule`, `set_away_schedule`, `set_away_schedule_home` |
 | Polling configuration | `set_polling_options` |
-| Historical/holiday data | `get_day_report`, `get_holiday_mode`, `set_holiday_mode` |
+| Historical/holiday data | `get_day_report`, `get_holiday_mode`, `set_holiday_mode`, `get_running_times`, `get_room_running_time`, `get_home_running_time` |
+| Physical-device identification | `identify_device` |
 | Profiles | `save_schedule_profile`, `restore_schedule_profile`, `save_schedule_profile_home`, `restore_schedule_profile_home`, `list_schedule_profiles`, `delete_schedule_profile`, `create_schedule_profile`, `save_schedule_profile_default`, `restore_schedule_profile_default`, `reset_schedule_default` |
 
 Action schemas and response support are implemented in `__init__.py`; field descriptions live in `services.yaml`, with corresponding translation entries. The read-oriented actions return data where implemented. Do not rename established action identifiers or change their parameters without a deliberate compatibility decision.
@@ -217,7 +220,7 @@ Keep the distinction between **Away with hot water still following its schedule*
 - **Holiday mode:** read/write home-level holiday settings where the account supports them.
 - **Energy IQ:** meter readings and tariff configuration.
 - **Weather and air comfort:** optional home/room data and sensors.
-- **Running times:** optional daily room heating duration.
+- **Running times:** optional daily room and home heating duration, plus on-demand historical Minder actions.
 - **Flow temperature:** optional maximum-flow-temperature number and auto-adaptation switch.
 - **Presence and mobile devices:** home presence selection and optional mobile-device trackers, using Home Assistant's `in_zones` interface.
 - **Physical-device diagnostics:** device serial information, battery/connectivity state, temperature and calibration.
@@ -269,7 +272,7 @@ Before accepting a code change:
 
 ## 15. Provenance and validation scope
 
-This document describes the implementation packaged with Tado X Enhanced `1.3.0`, including the integration modules, manifest, action definitions and schedule-profile handling. Source inspection and static validation are distinct from live integration tests. For release-specific changes and test scope, consult [CHANGELOG.md](../CHANGELOG.md).
+This document describes the implementation packaged with Tado X Enhanced `1.4.0`, including the integration modules, manifest, action definitions and schedule-profile handling. Source inspection and static validation are distinct from live integration tests. For release-specific changes and test scope, consult [CHANGELOG.md](../CHANGELOG.md).
 
 Tado X Enhanced is an independently maintained MIT-licensed derivative of Exabird's original integration. Retain the original and subsequent copyright notices in the repository's [LICENSE](../LICENSE).
 
@@ -284,3 +287,13 @@ The `tado_x.set_holiday_mode` action accepts optional start and end dates, conve
 ### 15.2 Holiday Mode and domestic hot water
 
 Tado may leave hot water switched Off after Holiday Mode is cancelled, including when Holiday Mode was controlled through the Tado app. The integration reports the Tado API state rather than automatically changing the hot-water schedule. The [README](../README.md) describes an optional Home Assistant automation for restoring Schedule after Holiday Mode ends.
+
+### Physical-device identification
+
+The existing `roomsAndDevices` coordinator response supplies `supportsIdentify` for physical devices. A capability-advertising device receives a `Blink Display` button. Both this button and the `identify_device` action call the one-shot GraphQL `identifyDevice` mutation using the home-scoped `LINE_X` serial identifier; no periodic requests or post-identification coordinator refresh are added.
+
+### Refresh reliability and command attribution
+
+`coordinator_health.py` tracks per-home actual fetches and command refresh request sequences. Mandatory response shapes are validated; ordinary optional failures retain cached data (running times only for the same day). Authentication and rate-limit exceptions propagate to whole-update handling. The local diagnostic watchdog adds no API requests. A command request is resolved only by a fetch beginning after it; multiple requests can share that fetch. See [Entities](ENTITIES.md#coordinator-health).
+
+OpenTherm setpoint and constraints travel with the optional hot-water snapshot. Capability-dependent number writes use command refresh monitoring; relay default disablement is conservative and preserves user choices.

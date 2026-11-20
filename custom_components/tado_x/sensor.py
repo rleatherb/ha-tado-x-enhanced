@@ -4,10 +4,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -92,12 +93,30 @@ class TadoXAirComfortSensorEntityDescription(SensorEntityDescription):
 
 
 def _format_running_time_hours(room: TadoXRoom) -> float:
-    """Convert running time seconds to hours with one decimal."""
+    """Convert running time seconds to hours with two decimals."""
     seconds = room.running_time_today_seconds
-    return round(seconds / 3600, 1)
+    return round(seconds / 3600, 2)
+
+
+def _home_running_time_hours(data: TadoXData) -> float | None:
+    """Use Minder's home summary, never a sum of overlapping room durations."""
+    summary = data.running_times.get("summary")
+    if not isinstance(summary, dict):
+        return None
+    seconds = summary.get("totalRunningTimeInSeconds")
+    if isinstance(seconds, bool) or not isinstance(seconds, (int, float)) or seconds < 0:
+        return None
+    return round(seconds / 3600, 2)
 
 
 ROOM_SENSORS: tuple[TadoXRoomSensorEntityDescription, ...] = (
+    TadoXRoomSensorEntityDescription(
+        key="room_id",
+        translation_key="room_id",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:identifier",
+        value_fn=lambda room: room.room_id,
+    ),
     TadoXRoomSensorEntityDescription(
         key="temperature",
         translation_key="temperature",
@@ -263,6 +282,15 @@ def _get_dhw_next_schedule_change(data: TadoXData) -> datetime | None:
 
 HOME_SENSORS: tuple[TadoXHomeSensorEntityDescription, ...] = (
     TadoXHomeSensorEntityDescription(
+        key="heating_time_today",
+        translation_key="heating_time_today",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL,
+        icon="mdi:clock-time-four",
+        value_fn=_home_running_time_hours,
+    ),
+    TadoXHomeSensorEntityDescription(
         key="home_id",
         name="Tado Home ID",
         translation_key="home_id",
@@ -336,7 +364,7 @@ HOME_SENSORS: tuple[TadoXHomeSensorEntityDescription, ...] = (
         translation_key="dhw_state",
         icon="mdi:water-boiler",
         device_class=SensorDeviceClass.ENUM,
-        options=["OFF", "SCHEDULE_OFF", "SCHEDULE_ON", "BOOST", "AWAY_OFF", "AWAY_ON", "HOLIDAY_MODE_OFF", "HOLIDAY_MODE_ON"],
+        options=["OFF", "SCHEDULE_OFF", "SCHEDULE_ON", "BOOST", "MANUAL_ON", "MANUAL_OFF", "AWAY_OFF", "AWAY_ON", "HOLIDAY_MODE_OFF", "HOLIDAY_MODE_ON"],
         value_fn=_get_domestic_hot_water_state,
     ),
     TadoXHomeSensorEntityDescription(
@@ -433,9 +461,12 @@ async def async_setup_entry(
 
     # Add home-level sensors (API monitoring)
     for description in HOME_SENSORS:
+        if description.key == "heating_time_today" and not coordinator.enable_running_times:
+            continue
         entities.append(TadoXHomeSensor(coordinator, description))
 
     entities.append(TadoXHomeScheduleProfileSensor(coordinator))
+    entities.append(TadoXCoordinatorHealthSensor(coordinator))
 
     # Add weather sensors (only if feature is enabled)
     if coordinator.enable_weather:
@@ -917,3 +948,52 @@ class TadoXHolidaySensor(CoordinatorEntity[TadoXDataUpdateCoordinator], SensorEn
             return None
         return {"enabled": data.get("enabled"), "active": data.get("active"),
                 "room_settings": data.get("roomSettings"), "hot_water_settings": data.get("hotWaterSettings")}
+
+
+class TadoXCoordinatorHealthSensor(SensorEntity):
+    """Independent local watchdog, even when coordinator updates stop."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "coordinator_health"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["initialising", "healthy", "degraded", "stale", "error",
+                     "rate_limited", "authentication_required"]
+    _attr_icon = "mdi:heart-pulse"
+    _attr_should_poll = False
+
+    def __init__(self, coordinator):
+        self.coordinator = coordinator
+        self._attr_unique_id = f"{coordinator.home_id}_coordinator_health"
+        self._previous_health = None
+
+    @property
+    def device_info(self):
+        return DeviceInfo(identifiers={(DOMAIN, str(self.coordinator.home_id))})
+
+    @property
+    def native_value(self):
+        return self.coordinator.health.state(self.coordinator._scan_interval)
+
+    @property
+    def extra_state_attributes(self):
+        return self.coordinator.health.attributes(self.coordinator._scan_interval)
+
+    @callback
+    def _check_health(self, now=None):
+        state = self.native_value
+        if state != self._previous_health:
+            if state not in ("healthy", "initialising"):
+                _LOGGER.warning("Coordinator health changed: home_id=%s state=%s previous=%s",
+                                self.coordinator.home_id, state, self._previous_health)
+            elif self._previous_health not in (None, "healthy", "initialising"):
+                _LOGGER.info("Coordinator recovered: home_id=%s state=%s", self.coordinator.home_id, state)
+            self._previous_health = state
+        self.async_write_ha_state()
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self.async_on_remove(self.coordinator.async_add_listener(self._check_health))
+        self.async_on_remove(async_track_time_interval(
+            self.hass, self._check_health, timedelta(seconds=30)))
+        self._check_health()

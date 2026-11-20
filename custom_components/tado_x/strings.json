@@ -524,6 +524,18 @@
       }
     },
     "sensor": {
+      "coordinator_health": {
+        "name": "Coordinator Health",
+        "state": {
+          "initialising": "Initialising",
+          "healthy": "Healthy",
+          "degraded": "Degraded",
+          "stale": "Stale",
+          "error": "Error",
+          "rate_limited": "Rate limited",
+          "authentication_required": "Authentication required"
+        }
+      },
       "temperature": {
         "name": "Temperature"
       },
@@ -666,6 +678,9 @@
       },
       "api_theoretical_daily_usage": {
         "name": "API theoretical daily usage"
+      },
+      "room_id": {
+        "name": "Tado Room ID"
       }
     },
     "binary_sensor": {
@@ -705,6 +720,9 @@
       },
       "timer_duration": {
         "name": "Timer Duration"
+      },
+      "dhw_setpoint": {
+        "name": "Hot Water Temperature"
       }
     },
     "button": {
@@ -734,6 +752,9 @@
       },
       "refresh_schedule_home": {
         "name": "Refresh all room schedules"
+      },
+      "blink_display": {
+        "name": "Blink Display"
       }
     },
     "select": {
