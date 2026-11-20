@@ -16,6 +16,7 @@ module = ast.Module(body=[ast.ClassDef(name='Stub', bases=[], keywords=[], body=
 ns = {'Any': object}
 exec(compile(ast.fix_missing_locations(module), '<extracted coordinator methods>', 'exec'), ns)
 obj = ns['Stub']()
+obj.health = type("Health", (), {"optional_errors": {}})()
 for key in ('weather', 'mobile_devices', 'air_comfort', 'running_times', 'flow_temp', 'hot_water'):
     setattr(obj, 'enable_'+key, True)
 assert obj.get_api_calls_per_update() == 9

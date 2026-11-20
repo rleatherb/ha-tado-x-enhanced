@@ -432,6 +432,8 @@ class TadoXApi:
                         json=json_data,
                     ) as retry_response:
                         self._parse_rate_limit_headers(retry_response.headers)
+                        if retry_response.status == 401:
+                            raise TadoXAuthError("Authentication rejected after token refresh")
                         if retry_response.status == 429:
                             raise TadoXRateLimitError(
                                 "API rate limit exceeded (429). Please wait for quota reset.",
@@ -486,14 +488,18 @@ class TadoXApi:
         if not self._home_id:
             raise TadoXApiError("Home ID not set")
         result = await self._request("GET", f"{TADO_HOPS_API_URL}/homes/{self._home_id}/rooms")
-        return result if isinstance(result, list) else []
+        if not isinstance(result, list) or any(not isinstance(item, dict) for item in result):
+            raise TadoXApiError("Unexpected get_rooms response structure")
+        return result
 
     async def get_rooms_and_devices(self) -> dict[str, Any]:
         """Get all rooms with their devices."""
         if not self._home_id:
             raise TadoXApiError("Home ID not set")
         result = await self._request("GET", f"{TADO_HOPS_API_URL}/homes/{self._home_id}/roomsAndDevices")
-        return result if isinstance(result, dict) else {}
+        if not isinstance(result, dict) or not isinstance(result.get("rooms"), list) or any(not isinstance(item, dict) for item in result["rooms"]):
+            raise TadoXApiError("Unexpected get_rooms_and_devices response structure")
+        return result
 
     async def set_room_temperature(
         self,
@@ -631,7 +637,9 @@ class TadoXApi:
         if not self._home_id:
             raise TadoXApiError("Home ID not set")
         result = await self._request("GET", f"{TADO_MY_API_URL}/homes/{self._home_id}/state")
-        return result if isinstance(result, dict) else {}
+        if not isinstance(result, dict) or "presence" not in result:
+            raise TadoXApiError("Unexpected get_home_state response structure")
+        return result
 
     async def set_presence_home(self) -> None:
         """Set presence to HOME (override geofencing)."""
@@ -871,7 +879,9 @@ class TadoXApi:
             "GET",
             f"{TADO_MY_API_URL}/homes/{self._home_id}/weather",
         )
-        return result if isinstance(result, dict) else {}
+        if not isinstance(result, dict):
+            raise TadoXApiError("Unexpected get_weather response structure")
+        return result
 
     # Mobile Devices endpoints
     async def get_mobile_devices(self) -> list[dict[str, Any]]:
@@ -885,7 +895,9 @@ class TadoXApi:
             "GET",
             f"{TADO_MY_API_URL}/homes/{self._home_id}/mobileDevices",
         )
-        return result if isinstance(result, list) else []
+        if not isinstance(result, list) or any(not isinstance(item, dict) for item in result):
+            raise TadoXApiError("Unexpected get_mobile_devices response structure")
+        return result
 
     async def get_air_comfort(self) -> dict[str, Any]:
         """Get air comfort data for all rooms.
@@ -899,7 +911,9 @@ class TadoXApi:
             "GET",
             f"{TADO_HOPS_API_URL}/homes/{self._home_id}/airComfort",
         )
-        return result if isinstance(result, dict) else {}
+        if not isinstance(result, dict):
+            raise TadoXApiError("Unexpected get_air_comfort response structure")
+        return result
 
     # Schedule endpoints (Tado X / Hops API, rooms)
     async def get_zone_schedule(self, room_id: int) -> dict[str, Any]:
@@ -1103,6 +1117,37 @@ class TadoXApi:
                     )
 
     # Running Times endpoints (Minder API)
+    async def identify_device(self, device_serial: str) -> dict[str, Any]:
+        """Identify a Tado X device via the official web app GraphQL mutation."""
+        if not self._home_id:
+            raise TadoXApiError("Home ID not set")
+
+        payload = {
+            "query": (
+                "mutation IdentifyDevice($deviceId: ID!) { "
+                "identifyDevice(deviceId: $deviceId) { success failureReason } "
+                "}"
+            ),
+            "variables": {
+                "deviceId": f"{self._home_id}:LINE_X:{device_serial}",
+            },
+        }
+        response = await self._request(
+            "POST", "https://ext.api.tado.com/apps/graphql", json_data=payload
+        )
+        if not isinstance(response, dict):
+            raise TadoXApiError("Unexpected identify response")
+        if response.get("errors"):
+            raise TadoXApiError(f"Identify GraphQL errors: {response['errors']}")
+        result = (response.get("data") or {}).get("identifyDevice")
+        if not isinstance(result, dict):
+            raise TadoXApiError("Identify result missing from GraphQL response")
+        if result.get("success") is not True:
+            raise TadoXApiError(
+                f"Device identification failed: {result.get('failureReason')}"
+            )
+        return {"success": True}
+
     async def get_running_times(self, from_date: str, to_date: str) -> dict[str, Any]:
         """Get running times data for heating statistics.
 
@@ -1139,7 +1184,9 @@ class TadoXApi:
             "GET",
             f"{TADO_MINDER_API_URL}/homes/{self._home_id}/runningTimes?from={from_date}&to={to_date}",
         )
-        return result if isinstance(result, dict) else {}
+        if not isinstance(result, dict):
+            raise TadoXApiError("Unexpected get_running_times response structure")
+        return result
 
     # Flow Temperature Optimization endpoints
     async def get_flow_temperature_optimization(self) -> dict[str, Any]:
@@ -1168,7 +1215,9 @@ class TadoXApi:
             "GET",
             f"{TADO_HOPS_API_URL}/homes/{self._home_id}/settings/flowTemperatureOptimization",
         )
-        return result if isinstance(result, dict) else {}
+        if not isinstance(result, dict):
+            raise TadoXApiError("Unexpected get_flow_temperature_optimization response structure")
+        return result
 
     async def set_max_flow_temperature(self, temperature: int) -> None:
         """Set the maximum flow temperature for the boiler.
@@ -1220,7 +1269,19 @@ class TadoXApi:
             "GET",
             f"{TADO_HOPS_API_URL}/homes/{self._home_id}/programmer/domesticHotWater/state",
         )
-        return result if isinstance(result, dict) else {}
+        if not isinstance(result, dict):
+            raise TadoXApiError("Unexpected get_domestic_hot_water_state response structure")
+        return result
+
+    async def set_domestic_hot_water_temperature(self, temperature: int) -> None:
+        """Set a supported domestic hot-water setpoint through Hops."""
+        if not self._home_id:
+            raise TadoXApiError("Home ID not set")
+        await self._request(
+            "POST",
+            f"{TADO_HOPS_API_URL}/homes/{self._home_id}/programmer/domesticHotWater/manualControl",
+            json_data={"setpoint": temperature},
+        )
 
     async def boost_domestic_hot_water(self) -> None:
         """Boost domestic hot water."""

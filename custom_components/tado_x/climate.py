@@ -259,7 +259,7 @@ class TadoXClimate(CoordinatorEntity[TadoXDataUpdateCoordinator], ClimateEntity)
             # Resume schedule
             await self.coordinator.api.resume_schedule(self._room_id)
 
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the target temperature."""
@@ -277,7 +277,7 @@ class TadoXClimate(CoordinatorEntity[TadoXDataUpdateCoordinator], ClimateEntity)
             termination_type=termination_type,
             duration_seconds=duration_minutes * 60,
         )
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode."""
@@ -290,7 +290,7 @@ class TadoXClimate(CoordinatorEntity[TadoXDataUpdateCoordinator], ClimateEntity)
         elif preset_mode == PRESET_AUTO:
             await self.coordinator.api.set_presence_auto()
 
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     async def async_turn_on(self) -> None:
         """Turn on heating."""
@@ -304,7 +304,7 @@ class TadoXClimate(CoordinatorEntity[TadoXDataUpdateCoordinator], ClimateEntity)
             temperature=temp,
             termination_type=TERMINATION_MANUAL,
         )
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     async def async_turn_off(self) -> None:
         """Turn off heating."""
@@ -312,7 +312,7 @@ class TadoXClimate(CoordinatorEntity[TadoXDataUpdateCoordinator], ClimateEntity)
             self._room_id,
             termination_type=TERMINATION_MANUAL,
         )
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     @callback
     def _handle_coordinator_update(self) -> None:

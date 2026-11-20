@@ -125,12 +125,12 @@ class TadoXChildLockSwitch(CoordinatorEntity[TadoXDataUpdateCoordinator], Switch
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable child lock."""
         await self.coordinator.api.set_child_lock(self._serial_number, True)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable child lock."""
         await self.coordinator.api.set_child_lock(self._serial_number, False)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -196,12 +196,12 @@ class TadoXOpenWindowSwitch(CoordinatorEntity[TadoXDataUpdateCoordinator], Switc
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Activate open window mode (only if system detected an open window)."""
         await self.coordinator.api.set_open_window_detection(self._room_id, True)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Reset/dismiss open window detection."""
         await self.coordinator.api.set_open_window_detection(self._room_id, False)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -255,13 +255,13 @@ class TadoXFlowTempAutoAdaptationSwitch(CoordinatorEntity[TadoXDataUpdateCoordin
         """Enable flow temperature auto-adaptation."""
         await self.coordinator.api.set_flow_temp_auto_adaptation(True)
         self.coordinator.invalidate_supplementary("flow_temp")
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable flow temperature auto-adaptation."""
         await self.coordinator.api.set_flow_temp_auto_adaptation(False)
         self.coordinator.invalidate_supplementary("flow_temp")
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     @callback
     def _handle_coordinator_update(self) -> None:

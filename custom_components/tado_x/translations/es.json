@@ -524,6 +524,18 @@
       }
     },
     "sensor": {
+      "coordinator_health": {
+        "name": "Estado del coordinador",
+        "state": {
+          "initialising": "Inicializando",
+          "healthy": "Correcto",
+          "degraded": "Degradado",
+          "stale": "Desactualizado",
+          "error": "Error",
+          "rate_limited": "Límite de solicitudes alcanzado",
+          "authentication_required": "Autenticación requerida"
+        }
+      },
       "temperature": {
         "name": "Temperatura"
       },
@@ -549,7 +561,8 @@
         "name": "Batería",
         "state": {
           "normal": "Normal",
-          "low": "Baja"
+          "low": "Baja",
+          "depleted": "Agotada"
         }
       },
       "device_temperature": {
@@ -665,6 +678,9 @@
       },
       "api_theoretical_daily_usage": {
         "name": "Uso diario teórico de API"
+      },
+      "room_id": {
+        "name": "ID de habitación Tado"
       }
     },
     "binary_sensor": {
@@ -704,6 +720,9 @@
       },
       "timer_duration": {
         "name": "Duración del temporizador"
+      },
+      "dhw_setpoint": {
+        "name": "Temperatura del agua caliente"
       }
     },
     "button": {
@@ -730,6 +749,12 @@
       },
       "refresh_holiday_mode": {
         "name": "Actualizar modo vacaciones"
+      },
+      "refresh_schedule_home": {
+        "name": "Actualizar todos los horarios de las habitaciones"
+      },
+      "blink_display": {
+        "name": "Hacer parpadear la pantalla"
       }
     },
     "select": {
@@ -756,6 +781,12 @@
           "MANUAL": "Manual",
           "NEXT_TIME_BLOCK": "Siguiente bloque horario"
         }
+      },
+      "restore_schedule_profile_home": {
+        "name": "Restaurar todos los horarios de las habitaciones"
+      },
+      "save_schedule_profile_home": {
+        "name": "Guardar todos los horarios de las habitaciones como"
       }
     },
     "device_tracker": {

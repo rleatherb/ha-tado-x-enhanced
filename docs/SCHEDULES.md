@@ -14,13 +14,13 @@ Some of the situations that frequently arise and would benefit from having multi
 
 - **Change in season.** The heating requirements in summer differ from those in winter (and possibly spring and autumn). In winter you are likely to want rooms to be heated each day, perhaps set to 18°C overnight and 21°C during the day. However, for heating in summer you probably only want to heat the rooms if there was an exceptional cold spell. One way of doing this would be to create a new schedule, perhaps setting a fallback of 17°C overnight and 18°C during the day, but of course the choices will depend on your situation.
 
-- **Rooms used occasionally.** A spare bedroom does not need to be heated when not occupied, but some background level of heat is beneficial to prevent damp. Switching the room off via the Tado app results in a threshold of 5°C, which is not recommended for extended periods. A better solution is a separate schedule that can be applied when the room is not being used, but switching to a different schedule when that room is occupied. This also means that you are free to select a temperature that appropriate to the room in question.
+- **Rooms used occasionally.** A spare bedroom does not need to be heated when not occupied, but some background level of heat is beneficial to prevent damp. Switching the room off via the Tado app results in a threshold of 5°C, which is not recommended for extended periods. A better solution is a separate schedule that can be applied when the room is not being used, but switching to a different schedule when that room is occupied. This also means that you are free to select a temperature that is appropriate to the room in question.
 
-- **Variable working patterns.** It is often the case that there are times when certain rooms are used during the day, perhaps when working at home or on when on leave, but other times when there is no need to heat during the day. If your working pattern is not regular, this is hard to achieve with a single fixed schedule. Having a schedule for "working from home" rather than "working at the office" would allow this situation to be catered for.
+- **Variable working patterns.** It is often the case that there are times when certain rooms are used during the day, perhaps when working at home or when on leave, but other times when there is no need to heat during the day. If your working pattern is not regular, this is hard to achieve with a single fixed schedule. Having a schedule for "working from home" rather than "working at the office" would allow this situation to be catered for.
 
 ## How is heating schedule support supplied via this integration?
 
-The schedules set up via the Tado app are used as the primary source for this integration. The Tado app remains a convenient schedule editor, but Home Assistant also provides direct schedule actions. The integration allows schedules to be saved and reloaded, meaning that you can replace the currently active schedules with ones that you define yourself. Unlimited named profiles are allowed, but there are pre-built scenarios that set up to address the main example use cases that were given above. In all cases, the schedules are defined for each room individually.
+The schedules set up via the Tado app are used as the primary source for this integration. The Tado app remains a convenient schedule editor, but Home Assistant also provides direct schedule actions. The integration allows schedules to be saved and reloaded, meaning that you can replace the currently active schedules with ones that you define yourself. Unlimited named profiles are allowed, but there are pre-built scenarios set up to address the main example use cases that were given above. In all cases, the schedules are defined for each room individually.
 
 ### Pre-defined schedule profile names
 
@@ -36,15 +36,31 @@ The following 4 schedule profiles are already known about within this implementa
 
 ### How are these schedule profiles used?
 
-Profiles are saved and restored on a per-room basis. On the room device page, under Configuration, you will see the selectors **Restore schedule profile** and **Save schedule profile**.
+Profiles can be saved and restored on a per-room or a per-home basis. Per-room profiles give maximum flexibility, but it is also possible to save and restore the room-specific profiles for the whole home.
+
+**Per-room profiles:** On the room device page, under Configuration, you will see the selectors **Restore schedule profile** and **Save schedule profile**.
 
 - **Restore schedule profile.** Use this to load one of the named profiles that are available. This loads just the profile that is associated with that room.
 
 - **Save schedule profile.** Use this to save the current heating schedule, as set up in the Tado app, to one of the named profiles that are listed.
 
-Each of these selectors will show how the current schedule, set via the Tado app, matches the named schedule profiles. If one of the named schedule profiles matches the current settings in the app, that named profile is shown. If the schedule set via the Tado app differs from any of your saved profiles, this is shown as **Custom** to indicate that it is different. Restoring one of the named profiles will update this, or alternatively you can save the current settings to update a stored profile.
+**Applying profile settings for the whole home:** On the home device page, under Configuration, you will see the selectors **Restore all room schedules** and **Save all room schedules as**.
+
+- **Restore all room schedules.** Use this to load one of the named profiles that are available. This loads the profile of that name for each eligible configured room, using the home-default fallback if no room-specific copy exists. Note that each room will have its own separate heating schedule; this command is just a convenient shortcut to applying **Restore schedule profile** for every room in turn.
+
+- **Save all room schedules as.** Use this to save the current heating schedule for the whole home, as set up in the Tado app, to one of the named profiles that are listed. This reads and saves the current Home and Away schedules for each eligible configured room directly from the API. Note that each room will still have its own separate heating schedule; this command is just a convenient shortcut to applying **Save schedule profile** for every room in turn.
+
+Each selector reflects the most recently compared live Home and Away settings. The home selectors show a common profile only if all rooms report the same selection; otherwise they show Custom (even if individual rooms match different named profiles). For a room, if a named profile matches the current settings in the app, a matching name is shown. If the schedule set via the Tado app differs from any of your saved profiles, this is shown as **Custom** to indicate that it is different. Restoring one of the named profiles will update this, or alternatively you can save the current settings to update a stored profile.
 
 **Please note:** To avoid using too many API calls, this integration only polls the Tado app to read its schedules periodically (the frequency of this can be configured for each Tado home). However, each room has a **Refresh Schedule** button that can be used to force the schedule information to be re-synchronised at any time.
+
+### When to save/restore schedule profiles on a per-room basis, and when to apply this for the whole home?
+
+This choice depends on how you wish to apply your profile settings. The following examples show how different usage patterns can be best served by per-room or whole home actions.
+
+**Example 1: allowing room-by-room choices.** Heating schedules could be defined for the following alternatives: Standard temperature, Cooler temperature, Warmer temperature, Temperature if room not in use. This situation might apply to a bedroom, where personal choice is likely to mean that some people prefer a cooler or a warmer room, or the room might not be in use and so you need just a background level of heating. Each room in the home could therefore be allowed to apply a different profile choice from these options, and this could be set depending on occupancy and preference. The result would be that the whole home might have a range of profiles used for the individual rooms.
+
+**Example 2: switching the whole home to a different profile.** If you do not often need per-room control, it can be convenient to switch the whole home to a new heating profile, for example to allow for a different use pattern or a change in season. For example, separate schedule profiles could be created for "Working at home" and "Working at the office", or there could be "Spring", "Summer", "Autumn" and "Winter". Changing the heating schedule for the whole home would therefore be as simple as carrying out a single selection.
 
 ### What settings are used if you load a profile that has not been explicitly stored?
 
@@ -84,7 +100,6 @@ If you have customised the default profile settings and wish to revert to the st
 It is possible to load the default schedule profile for a specific room. For example, if you have customised the Eco profile for the 'office' room, you can reset this to the Eco profile default as follows.
 
 1. Navigate to **Developer Tools → Actions** in Home Assistant.
-
 
 2. Select the action `tado_x.restore_schedule_profile_default`
 
@@ -273,8 +288,13 @@ data:
   entity_id: climate.office
 ```
 
-Data returned includes temperature, humidity, stripes (which are heating data), callfForHeat (the times associated with different heat settings), weather, and a summary of average/min/max temperatures, average humidity, and the number of heating hours.
+Data returned includes temperature, humidity, stripes (which are heating data), callForHeat (the times associated with different heat settings), weather, and a summary of average/min/max temperatures, average humidity, and the number of heating hours.
 
+## Home-device schedule controls
+
+The Tado X Home device provides **Refresh all room schedules**, **Restore all room schedules** and **Save all room schedules as**. These are distinct from the room-device controls and act on eligible configured rooms in the selected Tado home only. Refresh reads the current schedule and updates profile comparisons without changing the schedules. Save retrieves a **fresh Home schedule and its associated Away settings directly from the Tado API for each eligible room** before storing the chosen profile. It does not save from a cached schedule, so a preceding **Refresh all room schedules** operation is unnecessary and would duplicate API requests. If the fresh data cannot be retrieved or validated for a room, that room's profile is not overwritten; the whole-home action reports the failure. Restore reapplies each room's saved Home and Away settings, using the existing room-specific profile or home-default fallback.
+
+The two home profile selectors show a common profile when every room reports the same selection; otherwise they show **Custom**. Selecting **Custom** does nothing. Whole-home actions report partial failures and do not silently apply changes to another configured home. Schedule refresh requests are on demand and consume Tado API quota.
 
 ## Profile actions and home targeting
 
@@ -282,12 +302,14 @@ The room device provides **Restore schedule profile**, **Save schedule profile**
 
 Room-specific actions require a room `entity_id` (a Tado X climate entity). Home-wide actions (`create_schedule_profile`, `delete_schedule_profile`, `reset_schedule_default`) accept an optional **Tado X Home** `device_id`; supply it when multiple homes are configured. Profile names are entered as free text and must already exist before saving or restoring. The four built-in names cannot be deleted. `reset_schedule_default` accepts only a built-in profile name.
 
-The room profile's current selection can display **Custom** when its live Home/Away schedule matches no stored effective profile. It can also be unavailable if schedule reads fail; **Custom** is not a profile that can be restored. For details of validation and partial-write recovery, see [ARCHITECTURE.md](ARCHITECTURE.md).
+The room profile's current selection can display **Custom** when its live Home/Away schedule matches no stored effective profile. When comparison fails the match status may be Unknown and the selection Custom; **Custom** is not a profile that can be restored. For details of validation and partial-write recovery, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 
 ### Holiday Mode interaction
+
 Next Schedule Change, Power and Temperature continue to describe the underlying normal schedule; active Holiday Mode may override it. The Holiday Status sensor identifies the current holiday period.
 
 ### Whole-home schedule profile actions
 
 `save_schedule_profile_home` and `restore_schedule_profile_home` use an existing home-wide profile name but save/restore each room's own Home and Away schedule. Names are validated before processing begins. Uninitialised rooms are skipped with an error; reload the integration after adding rooms. See [ACTIONS.md](ACTIONS.md) for parameters and failure reporting.
+

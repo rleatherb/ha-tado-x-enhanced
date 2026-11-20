@@ -524,6 +524,18 @@
       }
     },
     "sensor": {
+      "coordinator_health": {
+        "name": "Koordinatorstatus",
+        "state": {
+          "initialising": "Initialisierung",
+          "healthy": "Fehlerfrei",
+          "degraded": "Beeinträchtigt",
+          "stale": "Veraltet",
+          "error": "Fehler",
+          "rate_limited": "Ratenlimit erreicht",
+          "authentication_required": "Authentifizierung erforderlich"
+        }
+      },
       "temperature": {
         "name": "Temperatur"
       },
@@ -549,7 +561,8 @@
         "name": "Batterie",
         "state": {
           "normal": "Normal",
-          "low": "Niedrig"
+          "low": "Niedrig",
+          "depleted": "Leer"
         }
       },
       "device_temperature": {
@@ -665,6 +678,9 @@
       },
       "api_theoretical_daily_usage": {
         "name": "API theoretische Tagesnutzung"
+      },
+      "room_id": {
+        "name": "Tado Raum-ID"
       }
     },
     "binary_sensor": {
@@ -704,6 +720,9 @@
       },
       "timer_duration": {
         "name": "Timerdauer"
+      },
+      "dhw_setpoint": {
+        "name": "Warmwassertemperatur"
       }
     },
     "button": {
@@ -730,6 +749,12 @@
       },
       "refresh_holiday_mode": {
         "name": "Urlaubsmodus aktualisieren"
+      },
+      "refresh_schedule_home": {
+        "name": "Alle Raumzeitpläne aktualisieren"
+      },
+      "blink_display": {
+        "name": "Anzeige blinken lassen"
       }
     },
     "select": {
@@ -756,6 +781,12 @@
           "MANUAL": "Manuell",
           "NEXT_TIME_BLOCK": "Nächster Zeitblock"
         }
+      },
+      "restore_schedule_profile_home": {
+        "name": "Alle Raumzeitpläne wiederherstellen"
+      },
+      "save_schedule_profile_home": {
+        "name": "Alle Raumzeitpläne speichern als"
       }
     },
     "device_tracker": {

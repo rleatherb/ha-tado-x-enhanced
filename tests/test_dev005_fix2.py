@@ -6,7 +6,7 @@ import yaml
 root = Path(__file__).resolve().parents[1]
 component = root / "custom_components/tado_x"
 actions = yaml.safe_load((component / "services.yaml").read_text())
-assert len(actions) == 25
+assert len(actions) == 31
 for name, field in (("set_climate_timer", "temperature"), ("set_climate_timer_home", "temperature"), ("set_away_schedule", "away_temperature"), ("set_away_schedule_home", "away_temperature")):
     number = actions[name]["fields"][field]["selector"]["number"]
     assert number["step"] == 0.1, (name, number)

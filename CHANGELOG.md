@@ -8,6 +8,33 @@ The project is independently maintained and is derived from the original Tado X 
 
 **[Readme](README.md)** · [Report an issue](https://github.com/rleatherb/ha-tado-x-enhanced/issues) · [Releases](https://github.com/rleatherb/ha-tado-x-enhanced/releases)
 
+## [1.4.0] - 2026-11-20
+
+### Added
+
+- Hot Water Temperature number for supported OpenTherm domestic hot-water systems, with API-provided constraints and whole-degree writes; conservative default disablement of relay controls where applicable.
+- Depleted battery enum state and low-battery indication for depleted batteries, with five-language labels.
+- Home-wide schedule refresh button and save/restore selectors, plus `refresh_schedule` and `refresh_schedule_home` actions. Saving reads fresh Home and Away data without a preceding refresh.
+- Home Heating Time Today sensor using Minder home totals, room ID diagnostic sensors and two-decimal heating durations. Three read-only historical running-time actions return durations in seconds.
+- Capability-driven Blink Display buttons and `identify_device` action for supported physical devices.
+- Per-home Coordinator Health diagnostic sensor with timing, counters, stale-data detection and optional failure reporting; post-command refresh outcome attributes.
+
+### Changed
+
+- Room device default-profile selectors are replaced by existing explicit default-profile actions; home-wide controls use eligible configured rooms only.
+- Ordinary optional API failures preserve available cached values and allow fresh core heating data to publish; running-time cache is same-day only. Mandatory response structures are validated.
+- Authentication failure and rate limiting retain separate handling. Cached rate-limited snapshots do not advance the fresh-success timestamp; repeated HTTP 401 after token refresh is classified as authentication failure.
+- Post-command refresh monitoring distinguishes actual fetches from debounced requests and preserves successful command semantics if the refresh fails.
+- No additional automatic polling is introduced by these changes.
+
+### Credits
+
+Hot-water temperature control builds on [upstream PR #74 by lchovanec](https://github.com/exabird/ha-tado-x/pull/74), with integration testing and feedback from [@gmagniez](https://github.com/gmagniez). Depleted-battery handling addresses [upstream issue #72](https://github.com/exabird/ha-tado-x/issues/72) and [PR #87 by @Somberland](https://github.com/exabird/ha-tado-x/pull/87).
+
+### Validation and limitations
+
+The maintainer reported successful live tests of schedule controls, heating durations, device identification, coordinator diagnostics and command refreshes, and all ten combined-system checks on two non-OpenTherm homes. OpenTherm setpoint operation was reported working by an external tester; the latest relay-control default-disablement behaviour has not been confirmed on OpenTherm hardware. Physical battery depletion and mobile device monitoring were not live-tested. Exceptional API failure conditions have simulated coverage. The root cause of [issue #16](https://github.com/rleatherb/ha-tado-x-enhanced/issues/16) remains unconfirmed.
+
 ## [1.3.0] - 2026-11-10
 
 ### Added

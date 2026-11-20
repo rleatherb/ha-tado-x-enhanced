@@ -1,8 +1,10 @@
 """DataUpdateCoordinator for Tado X."""
 from __future__ import annotations
 
+import asyncio
+import math
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -10,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .coordinator_health import CoordinatorHealth
 from .api import TadoXApi, TadoXApiError, TadoXAuthError, TadoXRateLimitError
 from .const import (
     DEFAULT_TIMER_DURATION_MINUTES,
@@ -39,6 +42,7 @@ class TadoXDevice:
     temperature_offset: float = 0.0
     mounting_state: str | None = None
     child_lock_enabled: bool = False
+    supports_identify: bool = False
     room_id: int | None = None
     room_name: str | None = None
 
@@ -147,6 +151,10 @@ class TadoXData:
     has_flow_temp_control: bool = False
     # Domestic hot water state (e.g., OFF, SCHEDULE_ON, SCHEDULE_OFF, BOOST)
     dhw_state: str | None = None
+    dhw_setpoint: float | None = None
+    dhw_setpoint_min: float | None = None
+    dhw_setpoint_max: float | None = None
+    dhw_relay_actions_unverified: bool = False
     dhw_boost_ends: str | None = None
     dhw_next_schedule_change: str | None = None
 
@@ -184,6 +192,7 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
             name=DOMAIN,
             update_interval=timedelta(seconds=scan_interval),
         )
+        self.health = CoordinatorHealth()
         self.api = api
         self.api._get_room_control_defaults = self.get_room_control_defaults
         self.parent_device_ids: dict[tuple[str, str], str] = {}
@@ -255,8 +264,17 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
     def mark_supplementary_success(self, feature: str, value: Any) -> None:
         """Cache successful data for reuse between reduced-frequency polls."""
         from time import monotonic
+        self.health.optional_errors.pop(feature, None)
         self._supplementary_cache[feature] = value
         self._supplementary_last_success[feature] = monotonic()
+
+    def record_optional_failure(self, feature: str, err: Exception) -> None:
+        """Keep previous optional data and report failures without raw payloads."""
+        error_type = type(err).__name__
+        if self.health.optional_errors.get(feature) != error_type:
+            _LOGGER.warning("Optional dataset failed: home_id=%s dataset=%s error=%s",
+                            self.home_id, feature, error_type)
+        self.health.optional_errors[feature] = error_type
 
     def update_supplementary_settings(self, multiplier: int) -> None:
         """Apply a new multiplier, resetting due timestamps when it changes."""
@@ -291,7 +309,59 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
         if duration_minutes is not None:
             defaults.duration_minutes = duration_minutes
 
+    async def async_request_command_refresh(self) -> None:
+        """Observe an existing post-command refresh without forcing extra polling."""
+        sequence = self.health.request_command_refresh()
+        _LOGGER.debug("Command refresh requested: home_id=%s sequence=%s", self.home_id, sequence)
+        try:
+            await self.async_request_refresh()
+        except asyncio.CancelledError:
+            raise
+        except Exception as err:
+            self.health.command_request_failed(sequence)
+            _LOGGER.warning("Command succeeded but refresh request failed: home_id=%s error=%s",
+                            self.home_id, type(err).__name__)
+
     async def _async_update_data(self) -> TadoXData:
+        """Instrument actual fetch attempts, not debounced refresh requests."""
+        for feature in list(self.health.optional_errors):
+            enabled = (getattr(getattr(self, "holiday_mode_manager", None), "poll_enabled", False)
+                       if feature == "holiday_mode" else getattr(self, "enable_" + feature, True))
+            if not enabled:
+                self.health.optional_errors.pop(feature, None)
+        self.health.begin()
+        command_was_pending = self.health.command_pending
+        _LOGGER.debug("Coordinator refresh started: home_id=%s", self.home_id)
+        try:
+            data = await self._async_fetch_data()
+        except asyncio.CancelledError:
+            self.health.finish("cancelled")
+            raise
+        except ConfigEntryAuthFailed:
+            self.health.finish("authentication_required", "ConfigEntryAuthFailed")
+            raise
+        except Exception as err:
+            self.health.finish("error", type(err.__cause__ or err).__name__)
+            raise
+        else:
+            self.health.finish("rate_limited" if data.rate_limited else "success",
+                               "TadoXRateLimitError" if data.rate_limited else None)
+            if not data.rate_limited and _LOGGER.isEnabledFor(logging.DEBUG):
+                for room in data.rooms.values():
+                    _LOGGER.debug("Coordinator room snapshot: home_id=%s room_id=%s temperature=%s target=%s demand=%s",
+                                  self.home_id, room.room_id, room.current_temperature,
+                                  room.target_temperature, room.heating_power)
+            return data
+        finally:
+            if command_was_pending and not self.health.command_pending:
+                outcome = self.health.command_outcome
+                log = _LOGGER.debug if outcome == "success" else _LOGGER.warning
+                log("Post-command refresh completed: home_id=%s outcome=%s",
+                    self.home_id, outcome)
+            _LOGGER.debug("Coordinator refresh completed: home_id=%s outcome=%s duration=%s",
+                          self.home_id, self.health.outcome, self.health.duration)
+
+    async def _async_fetch_data(self) -> TadoXData:
         """Fetch data from Tado X API."""
         try:
             # Get rooms with current state (required)
@@ -306,38 +376,68 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
 
             # Get domestic hot water state (optional)
             dhw_state = None
+            dhw_setpoint = None
+            dhw_setpoint_min = None
+            dhw_setpoint_max = None
             dhw_boost_ends = None
             dhw_next_schedule_change = None
             if self.enable_hot_water:
-                dhw_state_response = await self.api.get_domestic_hot_water_state()
-                dhw_state = dhw_state_response.get("state")
-                if dhw_state == "BOOST":
-                    dhw_boost_ends = dhw_state_response.get("nextStateChange")
-                elif dhw_state in ("SCHEDULE_ON", "SCHEDULE_OFF"):
-                    dhw_next_schedule_change = dhw_state_response.get("nextStateChange")
-            
+                try:
+                    dhw_state_response = await self.api.get_domestic_hot_water_state()
+                    dhw_state = dhw_state_response.get("state")
+                    constraints = dhw_state_response.get("setpointConstraints")
+                    if isinstance(constraints, dict):
+                        raw_values = (
+                            dhw_state_response.get("setpoint"),
+                            constraints.get("min"),
+                            constraints.get("max"),
+                        )
+                        if all(
+                            isinstance(value, (int, float))
+                            and not isinstance(value, bool)
+                            and math.isfinite(value)
+                            for value in raw_values
+                        ):
+                            current, minimum, maximum = map(float, raw_values)
+                            if minimum <= current <= maximum:
+                                dhw_setpoint = current
+                                dhw_setpoint_min = minimum
+                                dhw_setpoint_max = maximum
+                    if dhw_state == "BOOST":
+                        dhw_boost_ends = dhw_state_response.get("nextStateChange")
+                    elif dhw_state in ("SCHEDULE_ON", "SCHEDULE_OFF"):
+                        dhw_next_schedule_change = dhw_state_response.get("nextStateChange")
+                    self.mark_supplementary_success("hot_water", (dhw_state, dhw_boost_ends, dhw_next_schedule_change, dhw_setpoint, dhw_setpoint_min, dhw_setpoint_max))
+                except (TadoXAuthError, TadoXRateLimitError):
+                    raise
+                except Exception as err:
+                    self.record_optional_failure("hot_water", err)
+                    dhw_state, dhw_boost_ends, dhw_next_schedule_change, dhw_setpoint, dhw_setpoint_min, dhw_setpoint_max = self._supplementary_cache.get("hot_water", (None, None, None, None, None, None))
+
             # Get weather data (optional)
             weather = None
             if self.enable_weather and not self.should_refresh_supplementary("weather"):
                 weather = self._supplementary_cache.get("weather")
             elif self.enable_weather:
                 _LOGGER.debug("Supplementary API request: weather (home_id=%s)", self.home_id)
-                weather_data = await self.api.get_weather()
-                outdoor_temp_data = weather_data.get("outsideTemperature") or {}
-                solar_data = weather_data.get("solarIntensity") or {}
-                weather_state_data = weather_data.get("weatherState") or {}
+                try:
+                    weather_data = await self.api.get_weather()
+                    outdoor_temp_data = weather_data.get("outsideTemperature") or {}
+                    solar_data = weather_data.get("solarIntensity") or {}
+                    weather_state_data = weather_data.get("weatherState") or {}
 
-                weather = TadoXWeather(
-                    outdoor_temperature=outdoor_temp_data.get("celsius"),
-                    solar_intensity=solar_data.get("percentage"),
-                    weather_state=weather_state_data.get("value"),
-                )
-                self.mark_supplementary_success("weather", weather)
+                    weather = TadoXWeather(
+                        outdoor_temperature=outdoor_temp_data.get("celsius"),
+                        solar_intensity=solar_data.get("percentage"),
+                        weather_state=weather_state_data.get("value"),
+                    )
+                    self.mark_supplementary_success("weather", weather)
+                except (TadoXAuthError, TadoXRateLimitError):
+                    raise
+                except Exception as err:
+                    self.record_optional_failure("weather", err)
+                    weather = self._supplementary_cache.get("weather")
 
-            # Get mobile devices for geofencing (optional)
-            mobile_devices_data = []
-            if self.enable_mobile_devices:
-                mobile_devices_data = await self.api.get_mobile_devices()
 
             # Process the data
             data = TadoXData(
@@ -347,8 +447,22 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
                 presence_locked=presence_locked,
                 weather=weather,
                 dhw_state=dhw_state,
+                dhw_setpoint=dhw_setpoint,
+                dhw_setpoint_min=dhw_setpoint_min,
+                dhw_setpoint_max=dhw_setpoint_max,
                 dhw_boost_ends=dhw_boost_ends,
                 dhw_next_schedule_change=dhw_next_schedule_change,
+            )
+
+            # This is a conservative heuristic, not proof of absent relay hardware.
+            # Evaluate independently for each configured home.
+            data.dhw_relay_actions_unverified = (
+                data.dhw_setpoint is not None
+                and any(
+                    isinstance(device, dict)
+                    and device.get("thermInterfaceType") == "OPENTHERM"
+                    for device in (rooms_devices_data.get("otherDevices") or [])
+                )
             )
 
             # Process rooms, devices and Tado manual-control defaults
@@ -461,6 +575,7 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
                         temperature_offset=device_data.get("temperatureOffset", 0.0),
                         mounting_state=device_data.get("mountingState"),
                         child_lock_enabled=device_data.get("childLockEnabled", False),
+                        supports_identify=device_data.get("supportsIdentify") is True,
                         room_id=room_id,
                         room_name=room.name,
                     )
@@ -506,6 +621,7 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
                     device_type=device_type,
                     firmware_version=device_data.get("firmwareVersion", ""),
                     connection_state=other_device_connection.get("state", "DISCONNECTED"),
+                    supports_identify=device_data.get("supportsIdentify") is True,
                     room_id=other_room_id,
                     room_name=other_room_name,
                 )
@@ -517,30 +633,40 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
                 data.other_devices.append(device)
                 data.devices[device.serial_number] = device
 
-            # Process mobile devices
-            for mobile_data in mobile_devices_data:
-                device_id = mobile_data.get("id")
-                if not device_id:
-                    continue
+            # Process mobile devices atomically before replacing the cache.
+            if self.enable_mobile_devices:
+                try:
+                    mobile_devices_data = await self.api.get_mobile_devices()
+                    mobile_devices = {}
+                    for mobile_data in mobile_devices_data:
+                        device_id = mobile_data.get("id")
+                        if not device_id:
+                            continue
 
-                # Get location info
-                location_data = mobile_data.get("location") or {}
-                settings_data = mobile_data.get("settings") or {}
-                geo_tracking = settings_data.get("geoTrackingEnabled", False)
+                        # Get location info
+                        location_data = mobile_data.get("location") or {}
+                        settings_data = mobile_data.get("settings") or {}
+                        geo_tracking = settings_data.get("geoTrackingEnabled", False)
 
-                # Determine if at home based on location
-                at_home = location_data.get("atHome", False)
-                location_state = "HOME" if at_home else "AWAY" if location_data else None
+                        # Determine if at home based on location
+                        at_home = location_data.get("atHome", False)
+                        location_state = "HOME" if at_home else "AWAY" if location_data else None
 
-                mobile_device = TadoXMobileDevice(
-                    device_id=device_id,
-                    name=mobile_data.get("name", f"Mobile {device_id}"),
-                    device_metadata=mobile_data.get("deviceMetadata", {}),
-                    location=location_state,
-                    at_home=at_home,
-                    geofencing_enabled=geo_tracking,
-                )
-                data.mobile_devices[device_id] = mobile_device
+                        mobile_device = TadoXMobileDevice(
+                            device_id=device_id,
+                            name=mobile_data.get("name", f"Mobile {device_id}"),
+                            device_metadata=mobile_data.get("deviceMetadata", {}),
+                            location=location_state,
+                            at_home=at_home,
+                            geofencing_enabled=geo_tracking,
+                        )
+                        mobile_devices[device_id] = mobile_device
+                    self.mark_supplementary_success("mobile_devices", mobile_devices)
+                except (TadoXAuthError, TadoXRateLimitError):
+                    raise
+                except Exception as err:
+                    self.record_optional_failure("mobile_devices", err)
+                data.mobile_devices = dict(self._supplementary_cache.get("mobile_devices", {}))
 
             # Fetch running times (or reuse the latest same-day snapshot).
             if self.enable_running_times:
@@ -551,9 +677,15 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
                     try:
                         _LOGGER.debug("Supplementary API request: running_times (home_id=%s)", self.home_id)
                         running_times_data = await self.api.get_running_times(today, today)
+                        for entry in running_times_data.get("runningTimes", []):
+                            for zone in entry.get("zones", []):
+                                hash(zone.get("id"))
+                                zone.get("runningTimeInSeconds", 0)
                         self.mark_supplementary_success("running_times", (today, running_times_data))
+                    except (TadoXAuthError, TadoXRateLimitError):
+                        raise
                     except Exception as err:
-                        _LOGGER.warning("Failed to fetch running times data: %s", err)
+                        self.record_optional_failure("running_times", err)
                         running_times_data = cached[1] if cached and cached[0] == today else {}
                 else:
                     running_times_data = cached[1]
@@ -580,8 +712,10 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
                                     comfort_level=comfort_entry.get("temperatureLevel"),
                                 )
                         self.mark_supplementary_success("air_comfort", comfort)
+                    except (TadoXAuthError, TadoXRateLimitError):
+                        raise
                     except Exception as err:
-                        _LOGGER.warning("Failed to fetch air comfort data: %s", err)
+                        self.record_optional_failure("air_comfort", err)
                 data.air_comfort = dict(self._supplementary_cache.get("air_comfort", {}))
 
             # Flow-temperature configuration is cached between supplementary polls.
@@ -591,9 +725,15 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
                     try:
                         _LOGGER.debug("Supplementary API request: flow_temp (home_id=%s)", self.home_id)
                         flow_data = await self.api.get_flow_temperature_optimization()
+                        for key in ("maxFlowTemperatureConstraints", "autoAdaptation"):
+                            if not isinstance(flow_data.get(key) or {}, dict):
+                                raise TadoXApiError("Unexpected flow temperature response structure")
                         self.mark_supplementary_success("flow_temp", flow_data)
+                    except (TadoXAuthError, TadoXRateLimitError):
+                        raise
                     except Exception as err:
-                        _LOGGER.debug("Flow temperature optimization not available: %s", err)
+                        self.record_optional_failure("flow_temp", err)
+                        flow_data = self._supplementary_cache.get("flow_temp")
                 if flow_data:
                     data.has_flow_temp_control = True
                     data.max_flow_temperature = flow_data.get("maxFlowTemperature")
@@ -613,8 +753,10 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
                         _LOGGER.debug("Supplementary API request: holiday_mode (home_id=%s)", self.home_id)
                         await holiday_manager.refresh(notify=False, source="periodic")
                         self.mark_supplementary_success("holiday_mode", holiday_manager.data)
+                    except (TadoXAuthError, TadoXRateLimitError):
+                        raise
                     except Exception as err:
-                        _LOGGER.warning("Holiday Mode periodic refresh failed for home %s: %s", self.home_id, err)
+                        self.record_optional_failure("holiday_mode", err)
 
             # Populate API stats (prefer real values from headers when available)
             data.api_calls_today = self.api.api_calls_today
@@ -635,14 +777,13 @@ class TadoXDataUpdateCoordinator(DataUpdateCoordinator[TadoXData]):
         except TadoXRateLimitError as err:
             # Handle rate limit gracefully - return previous data with rate_limited flag
             _LOGGER.warning(
-                "Rate limit hit. Suspending API calls until %s. Using cached data.",
+                "Rate limit hit for home %s. Using cached data; reported reset: %s.",
+                self.home_id,
                 err.reset_time,
             )
             if self.data:
                 # Return previous data with rate_limited flag set
-                self.data.rate_limited = True
-                self.data.rate_limit_reset = err.reset_time
-                return self.data
+                return replace(self.data, rate_limited=True, rate_limit_reset=err.reset_time)
             # No previous data - create minimal data with rate limited status
             return TadoXData(
                 home_id=self.home_id,

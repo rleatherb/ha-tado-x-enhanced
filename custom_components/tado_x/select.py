@@ -74,6 +74,9 @@ async def async_setup_entry(
             entities.append(TadoXScheduleProfileSelect(coordinator, room_id))
             entities.append(TadoXSaveScheduleProfileSelect(coordinator, room_id))
 
+    entities.append(TadoXHomeScheduleProfileSelect(coordinator, save=False))
+    entities.append(TadoXHomeScheduleProfileSelect(coordinator, save=True))
+
     async_add_entities(entities)
 
     # Remove v37-only default-profile selectors, now available exclusively as actions.
@@ -91,7 +94,7 @@ async def async_setup_entry(
 
     # Update entity enabled/disabled state based on feature flags
     for entity_id, entity_entry in list(entity_registry.entities.items()):
-        if entity_entry.platform != DOMAIN:
+        if entity_entry.platform != DOMAIN or entity_entry.domain != "select":
             continue
 
         if entity_entry.config_entry_id != entry.entry_id:
@@ -102,6 +105,15 @@ async def async_setup_entry(
             continue
 
         if not entity_entry.unique_id:
+            continue
+
+        if (
+            coordinator.enable_hot_water
+            and coordinator.data
+            and coordinator.data.dhw_relay_actions_unverified
+            and entity_entry.unique_id == f"{coordinator.home_id}_dhw_mode"
+            and entity_entry.disabled_by == er.RegistryEntryDisabler.INTEGRATION
+        ):
             continue
 
         # Check if this entity matches a disabled feature
@@ -188,7 +200,7 @@ class TadoXPresenceSelect(CoordinatorEntity[TadoXDataUpdateCoordinator], SelectE
                 await self.coordinator.api.set_presence_auto()
 
             # Refresh to get updated state
-            await self.coordinator.async_request_refresh()
+            await self.coordinator.async_request_command_refresh()
         except Exception as err:
             _LOGGER.error("Failed to set presence mode to %s: %s", option, err)
 
@@ -213,6 +225,8 @@ class TadoXDhwModeSelect(CoordinatorEntity[TadoXDataUpdateCoordinator], SelectEn
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{coordinator.home_id}_{description.key}"
+        if coordinator.data and coordinator.data.dhw_relay_actions_unverified:
+            self._attr_entity_registry_enabled_default = False
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -252,7 +266,7 @@ class TadoXDhwModeSelect(CoordinatorEntity[TadoXDataUpdateCoordinator], SelectEn
                 _LOGGER.error("Invalid domestic hot water mode selected: %s", option)
                 return
 
-            await self.coordinator.async_request_refresh()
+            await self.coordinator.async_request_command_refresh()
         except Exception as err:
             _LOGGER.error("Failed to set domestic hot water mode to %s: %s", option, err)
 
@@ -381,7 +395,7 @@ class TadoXScheduleProfileSelect(CoordinatorEntity[TadoXDataUpdateCoordinator], 
 
     async def async_select_option(self, option):
         if option == "Custom":
-            raise HomeAssistantError("Custom is a status, not a saved schedule")
+            return  # Custom is a status; selecting it does not restore a profile.
         await self.coordinator.schedule_profile_manager.restore(self._room_id, option)
         self.async_write_ha_state()
 
@@ -401,9 +415,69 @@ class TadoXSaveScheduleProfileSelect(TadoXScheduleProfileSelect):
 
     async def async_select_option(self, option):
         if option == "Custom":
-            raise HomeAssistantError("Custom is a status, not a profile name")
+            return  # Custom is a status; selecting it does not save a profile.
         manager = self.coordinator.schedule_profile_manager
         if option not in manager.names(self._room_id):
             raise HomeAssistantError(f"Unknown schedule profile: {option}")
         await manager.save(self._room_id, option)
+        self.async_write_ha_state()
+
+
+class TadoXHomeScheduleProfileSelect(CoordinatorEntity[TadoXDataUpdateCoordinator], SelectEntity):
+    """Home-wide profile action, mirroring the room save/restore selectors."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: TadoXDataUpdateCoordinator, *, save: bool) -> None:
+        super().__init__(coordinator)
+        self._save = save
+        self._attr_name = "Save all room schedules as" if save else "Restore all room schedules"
+        self._attr_translation_key = "save_schedule_profile_home" if save else "restore_schedule_profile_home"
+        self._attr_icon = "mdi:content-save-outline" if save else "mdi:calendar-sync"
+        self._attr_unique_id = (
+            f"{coordinator.home_id}_save_all_room_schedules_as"
+            if save else f"{coordinator.home_id}_restore_all_room_schedules"
+        )
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        return DeviceInfo(identifiers={(DOMAIN, str(self.coordinator.home_id))})
+
+    @property
+    def options(self) -> list[str]:
+        return ["Custom", *self.coordinator.schedule_profile_manager.all_names()]
+
+    @property
+    def current_option(self) -> str:
+        manager = self.coordinator.schedule_profile_manager
+        rooms = self.coordinator.data.rooms if self.coordinator.data else {}
+        if not rooms:
+            return "Custom"
+        selected = {manager.selected(room_id) for room_id in rooms}
+        return next(iter(selected)) if len(selected) == 1 else "Custom"
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.coordinator.schedule_profile_manager.listen(self.async_write_ha_state)
+        )
+
+    async def async_select_option(self, option: str) -> None:
+        if option == "Custom":
+            return  # Status only: no API call or coordinator refresh.
+        manager = self.coordinator.schedule_profile_manager
+        if option not in manager.all_names():
+            raise HomeAssistantError(f"Unknown schedule profile: {option}")
+        entity = er.async_get(self.hass).async_get(self.entity_id)
+        if entity is None or not entity.device_id:
+            raise HomeAssistantError("Schedule profile control is not attached to a Tado X Home device")
+        service = (
+            "save_schedule_profile_home" if self._save
+            else "restore_schedule_profile_home"
+        )
+        await self.hass.services.async_call(
+            DOMAIN, service, {"device_id": entity.device_id, "profile": option},
+            blocking=True,
+        )
         self.async_write_ha_state()

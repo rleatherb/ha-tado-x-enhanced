@@ -141,7 +141,7 @@ class HolidayModeManager:
                 end = end_dt.isoformat(timespec="seconds").replace("+00:00", "Z")
         await self.coordinator.api.set_holiday_mode(enabled, start, end)
         await self.refresh(source="action")
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_request_command_refresh()
 
     def stop(self) -> None:
         for unsubscribe in self._unsub_events:

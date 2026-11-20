@@ -1,3 +1,28 @@
+refresh_schedule:
+  name: Refresh schedule for room
+  description: Read the selected room's live Home schedule, update its saved-profile comparison, and refresh the home state. Does not change the Tado schedule.
+  fields:
+    entity_id:
+      name: Tado X room climate entity
+      description: Select a native Tado X climate entity to identify the room and home unambiguously.
+      required: true
+      selector:
+        entity:
+          integration: tado_x
+          domain: climate
+
+refresh_schedule_home:
+  name: Refresh schedules for home
+  description: Sequentially refresh every eligible room's Home schedule and profile comparison in the selected Tado home, followed by one coordinator refresh. Reports partial failures.
+  fields:
+    device_id:
+      name: Tado X Home device
+      description: Optional for one configured home; required for multiple homes. Select the Home device, not a room or physical device.
+      required: false
+      selector:
+        device:
+          integration: tado_x
+
 # Services for Tado X integration
 
 set_temperature_offset:
@@ -700,3 +725,83 @@ set_hvac_mode_home:
             - auto
             - heat
             - "off"
+
+
+# Historical running times (read-only; one Minder API request per execution).
+get_running_times:
+  name: Get heating running times
+  description: Retrieve a dated Minder report for a Tado home with the original Minder structure and room names annotated. One API request per call; at most 31 days.
+  fields:
+    device_id:
+      name: Tado X Home device
+      description: Select the Home device (required when multiple homes are configured).
+      required: false
+      selector:
+        device:
+          integration: tado_x
+    from_date:
+      name: From date
+      description: Defaults to today.
+      required: false
+      selector:
+        date:
+    to_date:
+      name: To date
+      description: Defaults to From date. Maximum range is 31 days.
+      required: false
+      selector:
+        date:
+
+get_room_running_time:
+  name: Get room heating running time
+  description: Return the Minder heating duration in seconds for one Tado X room on one date. One API request per call.
+  fields:
+    entity_id:
+      name: Tado X room climate entity
+      description: Identifies both the room and its Tado home.
+      required: true
+      selector:
+        entity:
+          integration: tado_x
+          domain: climate
+    date:
+      name: Date
+      description: Defaults to today.
+      required: false
+      selector:
+        date:
+
+get_home_running_time:
+  name: Get home heating running time
+  description: Return the Minder whole-home heating duration in seconds for one date, without summing overlapping room durations. One API request per call.
+  fields:
+    device_id:
+      name: Tado X Home device
+      description: Select the Home device (required when multiple homes are configured).
+      required: false
+      selector:
+        device:
+          integration: tado_x
+    date:
+      name: Date
+      description: Defaults to today.
+      required: false
+      selector:
+        date:
+
+identify_device:
+  name: Identify device
+  description: >-
+    Flash the display or identification indicator of a supported physical Tado X
+    device. The device must advertise identification support. Sends one request
+    when invoked; no additional polling is performed.
+  fields:
+    device_id:
+      name: Physical Tado X device
+      description: >-
+        Select a physical Tado X device that supports identification,
+        not a room or Tado X Home device.
+      required: true
+      selector:
+        device:
+          integration: tado_x

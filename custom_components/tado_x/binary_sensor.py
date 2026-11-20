@@ -68,7 +68,7 @@ DEVICE_BINARY_SENSORS: tuple[TadoXDeviceBinarySensorEntityDescription, ...] = (
         key="battery_low",
         translation_key="battery_low",
         device_class=BinarySensorDeviceClass.BATTERY,
-        value_fn=lambda device: device.battery_state == "LOW" if device.battery_state else None,
+        value_fn=lambda device: device.battery_state in ("LOW", "DEPLETED") if device.battery_state else None,
     ),
 )
 

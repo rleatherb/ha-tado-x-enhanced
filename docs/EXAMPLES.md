@@ -138,6 +138,57 @@ data:
 
 The response includes `profiles`, `home_defaults`, `current`, `status` and `matching_profiles`. Use the room's **Refresh Schedule** button to update matching information when automatic schedule checks are disabled.
 
+## 11. Save and restore schedules across a home
+
+After configuring each room in the Tado app, save all current Home/Away schedules under an existing name:
+
+```yaml
+action: tado_x.save_schedule_profile_home
+data:
+  device_id: YOUR_TADO_HOME_DEVICE_ID
+  profile: Eco
+```
+
+Later restore each room's saved Eco schedule:
+
+```yaml
+action: tado_x.restore_schedule_profile_home
+data:
+  device_id: YOUR_TADO_HOME_DEVICE_ID
+  profile: Eco
+```
+
+Each room retains its own schedule. Saving reads fresh data; no prior refresh is needed. For multi-home setups supply the Home device ID. Partial failures are reported without a whole-home rollback.
+
+## 12. Query yesterday's heating duration
+
+In a script or automation, query a completed day and convert seconds to hours in a subsequent step:
+
+```yaml
+- action: tado_x.get_room_running_time
+  data:
+    entity_id: climate.office
+    date: "{{ (now() - timedelta(days=1)).strftime('%Y-%m-%d') }}"
+  response_variable: room_duration
+- action: input_number.set_value
+  target:
+    entity_id: input_number.office_heating_hours_yesterday
+  data:
+    value: "{{ (room_duration.running_time_seconds / 3600) | round(2) }}"
+```
+
+Create an input number helper with a range of 0–24 hours and suitable precision first. For whole-home totals use `tado_x.get_home_running_time` with the home device ID and date; overlapping room heating times must not be summed. Each query consumes one API request. Missing data raises an error rather than returning a misleading zero.
+
+## 13. Identify a physical device
+
+```yaml
+action: tado_x.identify_device
+data:
+  device_id: YOUR_PHYSICAL_TADO_DEVICE_ID
+```
+
+Use the physical device, not the room climate entity or home device. Only devices advertising identification support are eligible; the equivalent Blink Display button is under Configuration.
+
 ## Before using these examples
 
 - Confirm the target room or home, especially with two homes containing overlapping numeric room IDs.

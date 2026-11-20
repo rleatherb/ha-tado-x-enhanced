@@ -524,6 +524,18 @@
       }
     },
     "sensor": {
+      "coordinator_health": {
+        "name": "Stato del coordinatore",
+        "state": {
+          "initialising": "Inizializzazione",
+          "healthy": "Regolare",
+          "degraded": "Degradato",
+          "stale": "Obsoleto",
+          "error": "Errore",
+          "rate_limited": "Limite richieste raggiunto",
+          "authentication_required": "Autenticazione richiesta"
+        }
+      },
       "temperature": {
         "name": "Temperatura"
       },
@@ -549,7 +561,8 @@
         "name": "Batteria",
         "state": {
           "normal": "Normale",
-          "low": "Bassa"
+          "low": "Bassa",
+          "depleted": "Esaurita"
         }
       },
       "device_temperature": {
@@ -665,6 +678,9 @@
       },
       "api_theoretical_daily_usage": {
         "name": "Utilizzo giornaliero teorico API"
+      },
+      "room_id": {
+        "name": "ID stanza Tado"
       }
     },
     "binary_sensor": {
@@ -704,6 +720,9 @@
       },
       "timer_duration": {
         "name": "Durata timer"
+      },
+      "dhw_setpoint": {
+        "name": "Temperatura acqua calda"
       }
     },
     "button": {
@@ -730,6 +749,12 @@
       },
       "refresh_holiday_mode": {
         "name": "Aggiorna modalità vacanza"
+      },
+      "refresh_schedule_home": {
+        "name": "Aggiorna tutte le programmazioni delle stanze"
+      },
+      "blink_display": {
+        "name": "Fai lampeggiare il display"
       }
     },
     "select": {
@@ -756,6 +781,12 @@
           "MANUAL": "Manuale",
           "NEXT_TIME_BLOCK": "Prossimo blocco orario"
         }
+      },
+      "restore_schedule_profile_home": {
+        "name": "Ripristina tutte le programmazioni delle stanze"
+      },
+      "save_schedule_profile_home": {
+        "name": "Salva tutte le programmazioni delle stanze come"
       }
     },
     "device_tracker": {

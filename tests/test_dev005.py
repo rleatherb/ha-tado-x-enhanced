@@ -32,7 +32,7 @@ async def refresh():
 coordinator=SimpleNamespace(home_id='home-A',data=SimpleNamespace(rooms={
     1:SimpleNamespace(name='Office'),2:SimpleNamespace(name='Hall'),3:SimpleNamespace(name='Kitchen'),
     4:SimpleNamespace(name='New room')}),configured_room_ids=frozenset((1,2,3)),
-    schedule_profile_manager=Manager(),async_request_refresh=refresh)
+    schedule_profile_manager=Manager(),async_request_command_refresh=refresh)
 state={'refresh':0}
 ns={'HomeAssistantError':HomeAssistantError,'_LOGGER':Log()}
 module=ast.Module(body=[functions['whole_home_rooms'],functions['run_whole_home']],type_ignores=[])
@@ -65,5 +65,5 @@ for f in [root/'custom_components/tado_x/strings.json',*(root/'custom_components
     assert all(name in data['services'] for name in ('set_climate_timer_home','set_away_schedule_home','save_schedule_profile_home','restore_schedule_profile_home'))
 import yaml
 services=yaml.safe_load((root/'custom_components/tado_x/services.yaml').read_text())
-assert len(services)==25
+assert len(services)==31
 print('PASS: DEV-005 mocked eligibility, sequential failure continuation, aggregation, single refresh, action/translation coverage')
