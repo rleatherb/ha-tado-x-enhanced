@@ -7,6 +7,15 @@
 **Development branch:** `develop`  
 **Updated:** 20 November 2026
 
+## DEV-007 — Post-v1.4.0 development and maintenance (20 November 2026)
+
+- Version 1.4.0 was published on 20 November 2026, as confirmed by the maintainer. DEV-006 is complete. The historical pre-publication statement in the release record below is superseded by this entry; the approved release tag remains unchanged.
+- The maintainer confirms that `main` and `develop` have been synchronised. The published tag and branch commit IDs have not been independently retrieved during this housekeeping exercise.
+- Both supplied complete source ZIPs are byte-identical, with SHA-256 `a0536e3254fda24e925a5a3c72d81f23d76afd3fa7ac96d1a80376d5f47b1797`. Both pass archive integrity checks, contain 58 files and manifest version 1.4.0. All 12 individual documentation/licence files match the archive after line-ending normalisation. Python syntax and JSON/YAML parsing passed.
+- The initial DEV-007 change is confined to this development record. No functional changes, version increment, target release version or publication date are agreed. The published source archive remains unchanged.
+- Review and prioritise candidate work before allocating DEV-007.1 onwards. Issue #16 remains unconfirmed in root cause; retain existing coordinator diagnostics and review new evidence if available. OpenTherm relay-control default disablement, mobile-device monitoring and physical battery depletion remain accepted live-testing limitations. Exceptional API failures have simulated coverage. These are not automatic commitments for this cycle.
+- Review the live issue tracker and outstanding contributions when accessible. No new live Home Assistant or Tado API tests are claimed. Preserve the historical record and apply the mandatory documentation and exact-package release gates for any future release.
+
 ## v1.4.0 release record
 
 The DEV-006 cycle is complete for feature development. Version 1.4.0 consolidates OpenTherm domestic hot-water setpoint support, depleted battery handling, room and home schedule controls, heating duration sensors and historical actions, coordinator health and refresh reliability, and physical-device identification. There are 31 registered actions. The integration domain, existing action interfaces and home-scoped storage are retained.
